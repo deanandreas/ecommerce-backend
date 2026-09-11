@@ -16,15 +16,22 @@ var serveImage = http.FileServer(http.Dir(ProductsImageDir))
 
 const ProductsImageDir = "uploads/products/image"
 
-func (s *Server) GetProducts(w http.ResponseWriter, r *http.Request) {
+type HomeResponse struct {
+	Categories []db.Category       `json:"categories"`
+	Products   []db.GetProductsRow `json:"products"`
+}
+
+func (s *Server) Home(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	queryVals := r.URL.Query()
 
-	var searchArg, slugArg, sortByArg *string
+	var searchArg, sortByArg *string
 	if search := queryVals.Get("search"); search != "" {
 		searchArg = &search
 	}
-	if slug := queryVals.Get("slug"); slug != "" {
+
+	var slugArg *string
+	if slug := queryVals.Get("slug"); slug != "" && slug != "all" {
 		slugArg = &slug
 	}
 
@@ -44,7 +51,37 @@ func (s *Server) GetProducts(w http.ResponseWriter, r *http.Request) {
 		sortByArg = &sortBy
 	}
 
-	products, err := s.db.GetProducts(ctx, db.GetProductsParams{Search: searchArg, Slug: slugArg, MinPrice: minPriceArg, MaxPrice: maxPriceArg, SortBy: sortByArg})
+	categoryLimit := int32(5)
+	if limitStr := queryVals.Get("l"); limitStr != "" {
+		if val, err := strconv.Atoi(limitStr); err == nil && val > 0 {
+			categoryLimit = int32(val)
+		}
+	}
+
+	categories, err := s.db.GetProductsCategory(ctx, categoryLimit)
+	if err != nil {
+		slog.Error("failed to get categories", "error", err)
+		WriteJSON(w, http.StatusInternalServerError, "failed to fetch categories", nil)
+		return
+	}
+	if categories == nil {
+		categories = []db.Category{}
+	}
+
+	allCategory := db.Category{
+		ID:   "00000000-0000-0000-0000-000000000000",
+		Name: "All",
+		Slug: "all",
+	}
+	categories = append([]db.Category{allCategory}, categories...)
+
+	products, err := s.db.GetProducts(ctx, db.GetProductsParams{
+		Search:   searchArg,
+		Slug:     slugArg,
+		MinPrice: minPriceArg,
+		MaxPrice: maxPriceArg,
+		SortBy:   sortByArg,
+	})
 	if err != nil {
 		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok {
 			switch pgErr.Code {
@@ -57,36 +94,14 @@ func (s *Server) GetProducts(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, http.StatusInternalServerError, "failed to fetch products", nil)
 		return
 	}
-
 	if products == nil {
 		products = []db.GetProductsRow{}
 	}
 
-	WriteJSON(w, http.StatusOK, "products fetched successfully", products)
-}
-
-func (s *Server) GetProductsCategory(w http.ResponseWriter, r *http.Request) {
-	limitStr := r.URL.Query().Get("l")
-	var limit int
-	if limitStr != "" {
-		var err error
-		limit, err = strconv.Atoi(limitStr)
-		if err != nil {
-			WriteJSON(w, http.StatusBadRequest, "invalid limit value", nil)
-			return
-		}
-	} else {
-		limit = 5
-	}
-
-	categories, err := s.db.GetProductsCategory(r.Context(), int32(limit))
-	if err != nil {
-		slog.Error("failed to get products categories", "error", err)
-		WriteJSON(w, http.StatusInternalServerError, "failed to fetch the categories", nil)
-		return
-	}
-
-	WriteJSON(w, http.StatusOK, "products category fetched successfully", categories)
+	WriteJSON(w, http.StatusOK, "home data fetched successfully", HomeResponse{
+		Categories: categories,
+		Products:   products,
+	})
 }
 
 func (s *Server) GetPopularProducts(w http.ResponseWriter, r *http.Request) {

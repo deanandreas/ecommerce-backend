@@ -15,13 +15,12 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("POST /api/v1/register", s.Register)
 	mux.HandleFunc("GET /api/v1/token/refresh", s.RefreshToken)
 	mux.HandleFunc("POST /api/v1/login", s.Login)
-	mux.Handle("GET /products/image/", http.StripPrefix("/products/image/", serveImage))
 
 	// -->> Home <<--
-	mux.HandleFunc("GET /api/v1/products", s.GetProducts)
-	mux.HandleFunc("GET /api/v1/product/categories", s.GetProductsCategory)
+	mux.HandleFunc("GET /api/v1/home", s.Home)
 	mux.HandleFunc("GET /api/v1/product/star", s.GetPopularProducts)
 	mux.HandleFunc("GET /api/v1/product/details/{id}", s.GetProduct)
+	mux.Handle("GET /api/v1/products/image/", http.StripPrefix("/api/v1/products/image/", serveImage))
 
 	// -->>  User <<--
 	mux.Handle("GET /api/v1/user/profiles",
