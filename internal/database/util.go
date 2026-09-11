@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -13,10 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/disintegration/imaging"
 	"github.com/jackc/pgx/v5"
 )
 
-func SaveUploads(r *http.Request, ext []string, folder, key string) ([]string, error) {
+func SaveUploadImages(r *http.Request, folder, key string) ([]string, error) {
 	// limite the size of request data (eg. 10GB-20GB)
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		return nil, err
@@ -39,6 +39,7 @@ func SaveUploads(r *http.Request, ext []string, folder, key string) ([]string, e
 		// to check the file type
 		fileExt := strings.ToLower(filepath.Ext(header.Filename))
 		isValid := false
+		ext := [4]string{".png", ".gif", ".jpeg", ".jpg"}
 		for i := range ext {
 			if fileExt == ext[i] {
 				isValid = true
@@ -49,8 +50,24 @@ func SaveUploads(r *http.Request, ext []string, folder, key string) ([]string, e
 			return nil, ErrInvalidType
 		}
 
+		srcImage, err := imaging.Decode(file)
+		if err != nil {
+			return nil, err
+		}
+
+		dstImage := imaging.Resize(srcImage, 300, 0, imaging.Lanczos)
 		re := regexp.MustCompile(`[^a-zA-Z.]`)
 		s := re.ReplaceAllString(header.Filename, "")
+
+		var format imaging.Format
+		switch fileExt {
+		case ".png":
+			format = imaging.PNG
+		case ".gif":
+			format = imaging.GIF
+		default:
+			format = imaging.JPEG
+		}
 
 		// TO MAKE UNQUE FILE
 		fileName := fmt.Sprintf("%d-%s", time.Now().UnixNano(), s)
@@ -66,7 +83,7 @@ func SaveUploads(r *http.Request, ext []string, folder, key string) ([]string, e
 			return nil, err
 		}
 
-		if _, err := io.Copy(dst, file); err != nil {
+		if err := imaging.Encode(dst, dstImage, format); err != nil {
 			return nil, err
 		}
 		dst.Close()

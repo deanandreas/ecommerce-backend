@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/deanandreas/ecommerce-api/internal/database"
@@ -15,13 +14,11 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-const ProductsImageDir = "uploads/products/image"
-
 func (s *Server) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	userID, err := GetUserID(r)
 	ctx := r.Context()
 	if err != nil {
-		WriteJSON(w, http.StatusUnauthorized, "Unatuthorized", nil)
+		WriteJSON(w, http.StatusUnauthorized, "Unauthorized", nil)
 		return
 	}
 
@@ -143,35 +140,6 @@ func (s *Server) GetUserProduct(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, "user product fetched successfully", product)
 }
 
-func (s *Server) GetProducts(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	l := r.FormValue("limit")
-	limits, err := strconv.Atoi(l)
-	if limits == 0 || err != nil {
-		limits = 10
-	}
-
-	products, err := s.db.GetProducts(ctx, int32(limits))
-	if err != nil {
-		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok {
-			switch pgErr.Code {
-			case pgerrcode.NoData:
-				WriteJSON(w, http.StatusNotFound, "data not found", nil)
-				return
-			}
-		}
-		slog.Error("failed to get products", "error", err)
-		WriteJSON(w, http.StatusInternalServerError, "failed to fetch products", nil)
-		return
-	}
-
-	if products == nil {
-		products = []db.GetProductsRow{}
-	}
-
-	WriteJSON(w, http.StatusOK, "products fetched successfully", products)
-}
-
 func (s *Server) GetProduct(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	productID := r.PathValue("id")
@@ -275,7 +243,7 @@ func (s *Server) AddProductImages(w http.ResponseWriter, r *http.Request) {
 func (s *Server) UpdateDefaultImage(w http.ResponseWriter, r *http.Request) {
 	userID, err := GetUserID(r)
 	if err != nil {
-		WriteJSON(w, http.StatusUnauthorized, "Unatuthorized", nil)
+		WriteJSON(w, http.StatusUnauthorized, "Unauthorized", nil)
 		return
 	}
 
@@ -304,8 +272,8 @@ func (s *Server) UpdateDefaultImage(w http.ResponseWriter, r *http.Request) {
 			WriteJSON(w, http.StatusBadRequest, "image does not exist", nil)
 			return
 		}
-		slog.Error("failed to update defualt image", "error", err)
-		WriteJSON(w, http.StatusInternalServerError, "failed to change defualt image", nil)
+		slog.Error("failed to update default image", "error", err)
+		WriteJSON(w, http.StatusInternalServerError, "failed to change default image", nil)
 		return
 	}
 
@@ -315,7 +283,7 @@ func (s *Server) UpdateDefaultImage(w http.ResponseWriter, r *http.Request) {
 func (s *Server) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	userID, err := GetUserID(r)
 	if err != nil {
-		WriteJSON(w, http.StatusUnauthorized, "Unatuthorized", nil)
+		WriteJSON(w, http.StatusUnauthorized, "Unauthorized", nil)
 		return
 	}
 	ctx := r.Context()
@@ -338,12 +306,12 @@ func (s *Server) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		slog.Error("failed to delete produte", "error", err)
+		slog.Error("failed to delete product", "error", err)
 		WriteJSON(w, http.StatusInternalServerError, "failed to delete product", nil)
 		return
 	}
 	if result == 0 {
-		WriteJSON(w, http.StatusBadRequest, "produte does not exist", nil)
+		WriteJSON(w, http.StatusBadRequest, "product does not exist", nil)
 		return
 	}
 
@@ -353,7 +321,7 @@ func (s *Server) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 func (s *Server) DeleteProductImage(w http.ResponseWriter, r *http.Request) {
 	userID, err := GetUserID(r)
 	if err != nil {
-		WriteJSON(w, http.StatusUnauthorized, "Unatuthorized", nil)
+		WriteJSON(w, http.StatusUnauthorized, "Unauthorized", nil)
 		return
 	}
 	var req db.GetProductImagesParams

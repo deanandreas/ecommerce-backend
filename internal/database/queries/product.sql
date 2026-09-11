@@ -89,15 +89,7 @@ SELECT
     p."price_in_cent",
     p."stock",
     p."description",
-    COALESCE((
-        SELECT
-            ROW_TO_JSON(c_sub)
-        FROM (
-            SELECT
-                c."id", c."name", c."slug"
-            FROM "categories" c
-            WHERE
-                c."id" = p."category_id") c_sub), '{}'::json) AS "category",
+    c."name" AS "category_name",
     COALESCE((
         SELECT
             JSON_AGG(JSON_BUILD_OBJECT('id', r."id", 'user_id', r."user_id", 'rating', r."rating", 'comment', r."comment"))
@@ -112,6 +104,7 @@ SELECT
             i."product_id" = p."id"), '[]'::json) AS "image_url"
 FROM
     "products" p
+    LEFT JOIN "categories" c ON c."id" = p."category_id"
 WHERE
     p."id" = $1
     AND "deleted_at" IS NULL;
@@ -125,28 +118,6 @@ WHERE
     r."product_id" = $1
 GROUP BY
     r."product_id";
-
--- name: GetProducts :many
-SELECT
-    p."id",
-    p."title",
-    p."price_in_cent",
-    p."stock",
-    i."image_url"
-FROM
-    "products" p
-    LEFT JOIN LATERAL (
-        SELECT
-            "image_url"
-        FROM
-            "product_images"
-        WHERE
-            "product_id" = p."id"
-            AND "is_default" = TRUE
-        LIMIT 1) i ON TRUE
-WHERE
-    "deleted_at" IS NULL
-LIMIT $1;
 
 -- name: SoftDeleteProduct :execrows
 UPDATE
@@ -188,4 +159,3 @@ WHERE
     "id" = $1
     AND "user_id" = $2
     AND "deleted_at" IS NULL;
-

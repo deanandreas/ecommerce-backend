@@ -86,15 +86,7 @@ SELECT
     p."price_in_cent",
     p."stock",
     p."description",
-    COALESCE((
-        SELECT
-            ROW_TO_JSON(c_sub)
-        FROM (
-            SELECT
-                c."id", c."name", c."slug"
-            FROM "categories" c
-            WHERE
-                c."id" = p."category_id") c_sub), '{}'::json) AS "category",
+    c."name" AS "category_name",
     COALESCE((
         SELECT
             JSON_AGG(JSON_BUILD_OBJECT('id', r."id", 'user_id', r."user_id", 'rating', r."rating", 'comment', r."comment"))
@@ -109,20 +101,21 @@ SELECT
             i."product_id" = p."id"), '[]'::json) AS "image_url"
 FROM
     "products" p
+    LEFT JOIN "categories" c ON c."id" = p."category_id"
 WHERE
     p."id" = $1
     AND "deleted_at" IS NULL
 `
 
 type GetProductDetailsRow struct {
-	ID          string      `json:"id"`
-	Title       string      `json:"title"`
-	PriceInCent int32       `json:"price_in_cent"`
-	Stock       int32       `json:"stock"`
-	Description *string     `json:"description"`
-	Category    interface{} `json:"category"`
-	Review      interface{} `json:"review"`
-	ImageUrl    interface{} `json:"image_url"`
+	ID           string      `json:"id"`
+	Title        string      `json:"title"`
+	PriceInCent  int32       `json:"price_in_cent"`
+	Stock        int32       `json:"stock"`
+	Description  *string     `json:"description"`
+	CategoryName *string     `json:"category_name"`
+	Review       interface{} `json:"review"`
+	ImageUrl     interface{} `json:"image_url"`
 }
 
 func (q *Queries) GetProductDetails(ctx context.Context, id string) (GetProductDetailsRow, error) {
@@ -134,7 +127,7 @@ func (q *Queries) GetProductDetails(ctx context.Context, id string) (GetProductD
 		&i.PriceInCent,
 		&i.Stock,
 		&i.Description,
-		&i.Category,
+		&i.CategoryName,
 		&i.Review,
 		&i.ImageUrl,
 	)
@@ -173,63 +166,6 @@ func (q *Queries) GetProductStock(ctx context.Context, id string) (int32, error)
 	var stock int32
 	err := row.Scan(&stock)
 	return stock, err
-}
-
-const getProducts = `-- name: GetProducts :many
-SELECT
-    p."id",
-    p."title",
-    p."price_in_cent",
-    p."stock",
-    i."image_url"
-FROM
-    "products" p
-    LEFT JOIN LATERAL (
-        SELECT
-            "image_url"
-        FROM
-            "product_images"
-        WHERE
-            "product_id" = p."id"
-            AND "is_default" = TRUE
-        LIMIT 1) i ON TRUE
-WHERE
-    "deleted_at" IS NULL
-LIMIT $1
-`
-
-type GetProductsRow struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	PriceInCent int32  `json:"price_in_cent"`
-	Stock       int32  `json:"stock"`
-	ImageUrl    string `json:"image_url"`
-}
-
-func (q *Queries) GetProducts(ctx context.Context, limit int32) ([]GetProductsRow, error) {
-	rows, err := q.db.Query(ctx, getProducts, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetProductsRow
-	for rows.Next() {
-		var i GetProductsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.PriceInCent,
-			&i.Stock,
-			&i.ImageUrl,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const getProductsByUserID = `-- name: GetProductsByUserID :many

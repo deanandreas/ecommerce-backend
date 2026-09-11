@@ -10,9 +10,10 @@ import (
 )
 
 const deleteProductImage = `-- name: DeleteProductImage :exec
-DELETE FROM "product_images" i
-USING "products" p
-WHERE i."id" = $1 AND i."product_id" = p."id" AND p."user_id" = $2
+DELETE FROM "product_images" i USING "products" p
+WHERE i."id" = $1
+    AND i."product_id" = p."id"
+    AND p."user_id" = $2
 `
 
 type DeleteProductImageParams struct {
@@ -25,20 +26,32 @@ func (q *Queries) DeleteProductImage(ctx context.Context, arg DeleteProductImage
 	return err
 }
 
-const getDefualtImageID = `-- name: GetDefualtImageID :one
-SELECT "id" FROM "product_images" WHERE "product_id" = $1 AND "is_default" = TRUE
+const getDefaultImageID = `-- name: GetDefaultImageID :one
+SELECT
+    "id"
+FROM
+    "product_images"
+WHERE
+    "product_id" = $1
+    AND "is_default" = TRUE
 `
 
-func (q *Queries) GetDefualtImageID(ctx context.Context, productID string) (string, error) {
-	row := q.db.QueryRow(ctx, getDefualtImageID, productID)
+func (q *Queries) GetDefaultImageID(ctx context.Context, productID string) (string, error) {
+	row := q.db.QueryRow(ctx, getDefaultImageID, productID)
 	var id string
 	err := row.Scan(&id)
 	return id, err
 }
 
 const getProductImages = `-- name: GetProductImages :one
-SELECT "image_url", "is_default" FROM "product_images" 
-WHERE "product_id" = $1 AND "id" = $2
+SELECT
+    "image_url",
+    "is_default"
+FROM
+    "product_images"
+WHERE
+    "product_id" = $1
+    AND "id" = $2
 `
 
 type GetProductImagesParams struct {
@@ -59,8 +72,8 @@ func (q *Queries) GetProductImages(ctx context.Context, arg GetProductImagesPara
 }
 
 const insertProductImage = `-- name: InsertProductImage :exec
-INSERT INTO "product_images" ("product_id", "image_url", "is_default") 
-VALUES ($1, $2, $3)
+INSERT INTO "product_images" ("product_id", "image_url", "is_default")
+    VALUES ($1, $2, $3)
 `
 
 type InsertProductImageParams struct {
@@ -75,8 +88,12 @@ func (q *Queries) InsertProductImage(ctx context.Context, arg InsertProductImage
 }
 
 const updateDefaultImage = `-- name: UpdateDefaultImage :execrows
-UPDATE "product_images" SET "is_default" = $1
-WHERE "id" = $2
+UPDATE
+    "product_images"
+SET
+    "is_default" = $1
+WHERE
+    "id" = $2
 `
 
 type UpdateDefaultImageParams struct {

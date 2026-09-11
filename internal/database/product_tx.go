@@ -25,7 +25,7 @@ func (p *pSQL) InsertProductTx(ctx context.Context, r *http.Request, arg Product
 
 	defer RollBackWithFile(tx, ctx, imageURLs)
 
-	imageURLs, err = SaveUploads(r, Ext, "products/image", "image")
+	imageURLs, err = SaveUploadImages(r, "products/image", "image")
 	if err != nil {
 		return nil, err
 	}
@@ -58,6 +58,8 @@ func (p *pSQL) InsertProductTx(ctx context.Context, r *http.Request, arg Product
 	for i, imageURL := range imageURLs {
 		if imageURLs[i] == imageURLs[0] {
 			iArg.IsDefault = true
+		} else {
+			iArg.IsDefault = false
 		}
 		iArg.ImageUrl = imageURL
 		if err := q.InsertProductImage(ctx, iArg); err != nil {
@@ -140,7 +142,7 @@ func (p *pSQL) UpdateDefaultImageTx(ctx context.Context, arg db.GetProductByUser
 
 	q := p.WithTx(tx)
 
-	imageID, err := q.GetDefualtImageID(ctx, arg.ID)
+	imageID, err := q.GetDefaultImageID(ctx, arg.ID)
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return nil, err
@@ -185,7 +187,7 @@ func (p *pSQL) InsertProductImagesTx(ctx context.Context, r *http.Request, arg d
 
 	defer RollBackWithFile(tx, ctx, imageURLs)
 
-	imageURLs, err = SaveUploads(r, Ext, "products/image", "image")
+	imageURLs, err = SaveUploadImages(r, "products/image", "image")
 	if err != nil {
 		return nil, err
 	}
@@ -244,4 +246,31 @@ func (p *pSQL) DeleteProductImageTx(ctx context.Context, arg db.GetProductImages
 	}
 
 	return nil
+}
+
+func (p *pSQL) InsertReviewTx(ctx context.Context, arg db.InsertReviewParams) (*db.GetReviewByIDRow, error) {
+	tx, err := p.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	defer RollBack(tx, ctx)
+
+	q := p.WithTx(tx)
+
+	id, err := q.InsertReview(ctx, arg)
+	if err != nil {
+		return nil, err
+	}
+
+	review, err := q.GetReviewByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	return &review, nil
 }
