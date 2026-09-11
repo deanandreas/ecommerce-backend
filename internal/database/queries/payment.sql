@@ -29,7 +29,7 @@ FROM
 WHERE
     "id" = $1;
 
--- name: UpdatePaymentStatus :exec
+-- name: UpdatePaymentStatus :execrows
 UPDATE "payments"
 SET
     "status" = $1
@@ -46,7 +46,7 @@ WHERE
     "status" = 'pending'
     AND "created_at" < $1;
 
--- name: UpdateOrderStatus :exec
+-- name: UpdateOrderStatus :execrows
 UPDATE "orders"
 SET
     "status" = $1

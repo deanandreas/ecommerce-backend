@@ -26,23 +26,29 @@ func (p *pSQL) ConfirmPaymentTx(ctx context.Context, paymentID, orderID, userID 
 
 	q := p.WithTx(tx)
 
-	if err := q.UpdatePaymentStatus(ctx, db.UpdatePaymentStatusParams{
+	if n, err := q.UpdatePaymentStatus(ctx, db.UpdatePaymentStatusParams{
 		ID: paymentID, Status: "paid",
 	}); err != nil {
 		return err
+	} else if n != 1 {
+		return ErrPaymentNotPending
 	}
 
-	if err := q.UpdateOrderStatus(ctx, db.UpdateOrderStatusParams{
+	if n, err := q.UpdateOrderStatus(ctx, db.UpdateOrderStatusParams{
 		Status: "confirmed", ID: orderID, UserID: userID,
 	}); err != nil {
 		return err
+	} else if n != 1 {
+		return ErrPaymentNotPending
 	}
 
 	return tx.Commit(ctx)
 }
 
 // CancelPaymentTx marks a pending payment as cancelled, cancels its order,
-// and returns the reserved stock for every item in the order.
+// and returns the reserved stock for every item in the order. It refuses to
+// run unless the payment is still pending, so a confirmed or already cancelled
+// payment can never have its stock restored a second time.
 func (p *pSQL) CancelPaymentTx(ctx context.Context, paymentID, orderID, userID string) error {
 	tx, err := p.Begin(ctx)
 	if err != nil {
@@ -52,6 +58,14 @@ func (p *pSQL) CancelPaymentTx(ctx context.Context, paymentID, orderID, userID s
 	defer RollBack(tx, ctx)
 
 	q := p.WithTx(tx)
+
+	if n, err := q.UpdatePaymentStatus(ctx, db.UpdatePaymentStatusParams{
+		ID: paymentID, Status: "cancelled",
+	}); err != nil {
+		return err
+	} else if n != 1 {
+		return ErrPaymentNotPending
+	}
 
 	order, err := q.GetUnpayedOrder(ctx, userID)
 	if err != nil {
@@ -71,16 +85,12 @@ func (p *pSQL) CancelPaymentTx(ctx context.Context, paymentID, orderID, userID s
 		}
 	}
 
-	if err := q.UpdatePaymentStatus(ctx, db.UpdatePaymentStatusParams{
-		ID: paymentID, Status: "cancelled",
-	}); err != nil {
-		return err
-	}
-
-	if err := q.UpdateOrderStatus(ctx, db.UpdateOrderStatusParams{
+	if n, err := q.UpdateOrderStatus(ctx, db.UpdateOrderStatusParams{
 		Status: "cancelled", ID: orderID, UserID: userID,
 	}); err != nil {
 		return err
+	} else if n != 1 {
+		return ErrPaymentNotPending
 	}
 
 	return tx.Commit(ctx)
@@ -110,6 +120,14 @@ func (p *pSQL) ExpirePendingPaymentsTx(ctx context.Context, cutoff pgtype.Timest
 			continue
 		}
 
+		if n, err := q.UpdatePaymentStatus(ctx, db.UpdatePaymentStatusParams{
+			ID: payment.ID, Status: "cancelled",
+		}); err != nil {
+			return err
+		} else if n != 1 {
+			continue
+		}
+
 		items, err := parseOrderItems(order.OrderItems)
 		if err != nil {
 			continue
@@ -123,16 +141,12 @@ func (p *pSQL) ExpirePendingPaymentsTx(ctx context.Context, cutoff pgtype.Timest
 			}
 		}
 
-		if err := q.UpdatePaymentStatus(ctx, db.UpdatePaymentStatusParams{
-			ID: payment.ID, Status: "cancelled",
-		}); err != nil {
-			return err
-		}
-
-		if err := q.UpdateOrderStatus(ctx, db.UpdateOrderStatusParams{
+		if n, err := q.UpdateOrderStatus(ctx, db.UpdateOrderStatusParams{
 			Status: "cancelled", ID: payment.OrderID, UserID: payment.UserID,
 		}); err != nil {
 			return err
+		} else if n != 1 {
+			continue
 		}
 	}
 

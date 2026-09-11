@@ -34,12 +34,12 @@ func (s *Server) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	targateDate := req.ShipDate.Time.Truncate(24 * time.Hour)
 	daysUntilShip := int(math.Round(targateDate.Sub(now).Hours() / 24))
 
-	switch daysUntilShip {
-	case 1:
+	switch {
+	case daysUntilShip <= 1:
 		req.ShipPriceInCent = 100000
-	case 4:
+	case daysUntilShip <= 4:
 		req.ShipPriceInCent = 80000
-	case 8:
+	case daysUntilShip <= 8:
 		req.ShipPriceInCent = 60000
 	default:
 		WriteJSON(w, http.StatusBadRequest, "invalid date", nil)

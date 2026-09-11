@@ -128,6 +128,10 @@ func (s *Server) ConfirmPayment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.db.ConfirmPaymentTx(ctx, payment.ID, payment.OrderID, userID); err != nil {
+		if errors.Is(err, database.ErrPaymentNotPending) {
+			WriteJSON(w, http.StatusConflict, "payment is not pending", nil)
+			return
+		}
 		slog.Error("failed to confirm payment", "error", err)
 		WriteJSON(w, http.StatusInternalServerError, "failed to confirm payment", nil)
 		return
@@ -172,6 +176,10 @@ func (s *Server) CancelPayment(w http.ResponseWriter, r *http.Request) {
 	if err := s.db.CancelPaymentTx(ctx, payment.ID, payment.OrderID, userID); err != nil {
 		if errors.Is(err, database.ErrNoItem) || errors.Is(err, pgx.ErrNoRows) {
 			WriteJSON(w, http.StatusBadRequest, "order is not pending", nil)
+			return
+		}
+		if errors.Is(err, database.ErrPaymentNotPending) {
+			WriteJSON(w, http.StatusConflict, "payment is not pending", nil)
 			return
 		}
 		slog.Error("failed to cancel payment", "error", err)

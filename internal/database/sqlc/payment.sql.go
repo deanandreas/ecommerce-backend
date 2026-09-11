@@ -182,7 +182,7 @@ func (q *Queries) InsertPayment(ctx context.Context, arg InsertPaymentParams) (P
 	return i, err
 }
 
-const updateOrderStatus = `-- name: UpdateOrderStatus :exec
+const updateOrderStatus = `-- name: UpdateOrderStatus :execrows
 UPDATE "orders"
 SET
     "status" = $1
@@ -197,12 +197,15 @@ type UpdateOrderStatusParams struct {
 	UserID string `json:"user_id"`
 }
 
-func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) error {
-	_, err := q.db.Exec(ctx, updateOrderStatus, arg.Status, arg.ID, arg.UserID)
-	return err
+func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateOrderStatus, arg.Status, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
-const updatePaymentStatus = `-- name: UpdatePaymentStatus :exec
+const updatePaymentStatus = `-- name: UpdatePaymentStatus :execrows
 UPDATE "payments"
 SET
     "status" = $1
@@ -216,7 +219,10 @@ type UpdatePaymentStatusParams struct {
 	ID     string `json:"id"`
 }
 
-func (q *Queries) UpdatePaymentStatus(ctx context.Context, arg UpdatePaymentStatusParams) error {
-	_, err := q.db.Exec(ctx, updatePaymentStatus, arg.Status, arg.ID)
-	return err
+func (q *Queries) UpdatePaymentStatus(ctx context.Context, arg UpdatePaymentStatusParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updatePaymentStatus, arg.Status, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
