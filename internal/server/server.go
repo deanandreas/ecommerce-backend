@@ -14,7 +14,7 @@ type DBService interface {
 	// >> Get Logics
 	GetUserByID(ctx context.Context, userID string) (db.GetUserByIDRow, error)
 	GetUserByEmail(ctx context.Context, email string) (db.GetUserByEmailRow, error)
-	GetProducts(ctx context.Context, limit int32) ([]db.GetProductsRow, error)
+	GetProducts(ctx context.Context, arg db.GetProductsParams) ([]db.GetProductsRow, error)
 	GetUserCart(ctx context.Context, userID string) (db.GetUserCartRow, error)
 	GetProductDetails(ctx context.Context, id string) (db.GetProductDetailsRow, error)
 	GetProductsByUserID(ctx context.Context, userID string) ([]db.GetProductsByUserIDRow, error)
@@ -24,6 +24,10 @@ type DBService interface {
 	GetUserOrder(ctx context.Context, arg db.GetUserOrderParams) (db.GetUserOrderRow, error)
 	GetUnpayedOrder(ctx context.Context, userID string) (db.GetUnpayedOrderRow, error)
 	GetPaymentByID(ctx context.Context, paymentID string) (db.Payment, error)
+	GetUserReview(ctx context.Context, arg db.GetUserReviewParams) (db.GetUserReviewRow, error)
+	GetProductReviews(ctx context.Context, productID string) ([]db.GetProductReviewsRow, error)
+	GetProductsCategory(ctx context.Context, limit int32) ([]db.Category, error)
+	GetPopularProducts(ctx context.Context) ([]db.GetPopularProductsRow, error)
 	// >> Create Logics
 	InsertUserTx(ctx context.Context, arg database.UserData) (*db.GetUserByIDRow, error)
 	InsertCartTx(ctx context.Context, arg database.CreateCart) (*db.CartItem, error)
@@ -33,6 +37,7 @@ type DBService interface {
 	InserOrderTx(ctx context.Context, arg db.InsertOrderParams) (*db.GetUserOrderRow, error)
 	InsertPayment(ctx context.Context, arg db.InsertPaymentParams) (db.Payment, error)
 	InsertAddress(ctx context.Context, arg db.InsertAddressParams) error
+	InsertReviewTx(ctx context.Context, arg db.InsertReviewParams) (*db.GetReviewByIDRow, error)
 	// >> Update Logics
 	UpdateCartItemTx(ctx context.Context, arg db.UpdateCartItemQuantityParams) (*db.CartItem, error)
 	UpdateProductTx(ctx context.Context, arg database.UpdateProductData) (*db.GetProductByUserIDRow, error)

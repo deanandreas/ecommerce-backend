@@ -20,7 +20,7 @@ func GetENV() (int, string, error) {
 
 	dbURL := os.Getenv("DBURL")
 	if dbURL == "" {
-		return 0, "", errors.New("database URL does not exist in enviroment variable")
+		return 0, "", errors.New("database URL does not exist in enviaroment variable")
 	}
 
 	portNum, _ := strconv.Atoi(port)
