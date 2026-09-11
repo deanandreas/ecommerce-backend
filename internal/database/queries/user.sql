@@ -16,7 +16,7 @@ SELECT
             JSON_AGG(JSON_BUILD_OBJECT('id', a."id", 'street_line_1', a."street_line_1", 'street_line_2', a."street_line_2", 'postal_code', a."postal_code", 'state', a."state", 'city', a."city", 'country', a."country", 'is_default', a."is_default"))
         FROM "addresses" a
         WHERE
-            a."user_id" = u."id"), '[]'::json) AS "addresses"
+            a."user_id" = u."id"), '[]'::json) AS "address"
 FROM
     "users" u
 WHERE
@@ -37,7 +37,7 @@ SELECT
             JSON_AGG(JSON_BUILD_OBJECT('id', a."id", 'street_line_1', a."street_line_1", 'street_line_2', a."street_line_2", 'postal_code', a."postal_code", 'state', a."state", 'city', a."city", 'country', a."country", 'is_default', a."is_default"))
         FROM "addresses" a
         WHERE
-            a."user_id" = u."id"), '[]'::json) AS "addresses"
+            a."user_id" = u."id"), '[]'::json) AS "address"
 FROM
     "users" u
 WHERE

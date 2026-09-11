@@ -74,7 +74,7 @@ SELECT
             JSON_AGG(JSON_BUILD_OBJECT('id', a."id", 'street_line_1', a."street_line_1", 'street_line_2', a."street_line_2", 'postal_code', a."postal_code", 'state', a."state", 'city', a."city", 'country', a."country", 'is_default', a."is_default"))
         FROM "addresses" a
         WHERE
-            a."user_id" = u."id"), '[]'::json) AS "addresses"
+            a."user_id" = u."id"), '[]'::json) AS "address"
 FROM
     "users" u
 WHERE
@@ -90,7 +90,7 @@ type GetUserByEmailRow struct {
 	Birth        pgtype.Date `json:"birth"`
 	Email        string      `json:"email"`
 	HashPassword string      `json:"-"`
-	Addresses    interface{} `json:"addresses"`
+	Address      interface{} `json:"address"`
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
@@ -103,7 +103,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 		&i.Birth,
 		&i.Email,
 		&i.HashPassword,
-		&i.Addresses,
+		&i.Address,
 	)
 	return i, err
 }
@@ -120,7 +120,7 @@ SELECT
             JSON_AGG(JSON_BUILD_OBJECT('id', a."id", 'street_line_1', a."street_line_1", 'street_line_2', a."street_line_2", 'postal_code', a."postal_code", 'state', a."state", 'city', a."city", 'country', a."country", 'is_default', a."is_default"))
         FROM "addresses" a
         WHERE
-            a."user_id" = u."id"), '[]'::json) AS "addresses"
+            a."user_id" = u."id"), '[]'::json) AS "address"
 FROM
     "users" u
 WHERE
@@ -130,12 +130,12 @@ GROUP BY
 `
 
 type GetUserByIDRow struct {
-	ID        string      `json:"id"`
-	FullName  string      `json:"full_name"`
-	Phone     string      `json:"phone"`
-	Birth     pgtype.Date `json:"birth"`
-	Email     string      `json:"email"`
-	Addresses interface{} `json:"addresses"`
+	ID       string      `json:"id"`
+	FullName string      `json:"full_name"`
+	Phone    string      `json:"phone"`
+	Birth    pgtype.Date `json:"birth"`
+	Email    string      `json:"email"`
+	Address  interface{} `json:"address"`
 }
 
 func (q *Queries) GetUserByID(ctx context.Context, id string) (GetUserByIDRow, error) {
@@ -147,7 +147,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (GetUserByIDRow, e
 		&i.Phone,
 		&i.Birth,
 		&i.Email,
-		&i.Addresses,
+		&i.Address,
 	)
 	return i, err
 }

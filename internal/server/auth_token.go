@@ -1,12 +1,10 @@
 package server
 
 import (
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -18,7 +16,7 @@ import (
 func getJWTKey() ([]byte, error) {
 	key := os.Getenv("JWT_KEY")
 	if key == "" {
-		return nil, errors.New("JWT_KEY enviroment viriable is not set")
+		return nil, errors.New("JWT_KEY enviaroment viriable is not set")
 	}
 	return []byte(key), nil
 }
@@ -91,35 +89,11 @@ func ValidateToken(tokenString string) (string, error) {
 	return userID, nil
 }
 
-func HashRefreshCookie(cookie http.Cookie) string {
+func HashRefreshToken(val string) string {
 	hasher := sha256.New()
 
-	hasher.Write([]byte(cookie.Value))
+	hasher.Write([]byte(val))
 
 	hasherByte := hasher.Sum(nil)
 	return hex.EncodeToString(hasherByte)
-}
-
-func GenerateRefreshCookie() (*http.Cookie, error) {
-	bytes := make([]byte, 64)
-	if _, err := rand.Read(bytes); err != nil {
-		return nil, err
-	}
-
-	value := hex.EncodeToString(bytes)
-	value, err := GenerateJWT(value)
-	if err != nil {
-		return nil, err
-	}
-	cookie := http.Cookie{
-		Name:     "refresh-token",
-		Value:    value,
-		Path:     "/",
-		Expires:  time.Now().Add(7 * 24 * time.Hour),
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteStrictMode,
-	}
-
-	return &cookie, nil
 }

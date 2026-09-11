@@ -24,7 +24,7 @@ func (s *Server) CreateCart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.ProductID == "" || req.Quantity <= 0 {
-		WriteJSON(w, http.StatusBadRequest, "product id and quantity are requirerd", nil)
+		WriteJSON(w, http.StatusBadRequest, "product id and quantity are required", nil)
 		return
 	}
 	ctx := r.Context()
@@ -121,11 +121,11 @@ func (s *Server) GetUserCarts(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		slog.Error("failed to get user cart", "error", err)
-		WriteJSON(w, http.StatusInternalServerError, "failed to fech user cart", nil)
+		WriteJSON(w, http.StatusInternalServerError, "failed to fetch user cart", nil)
 		return
 	}
 
-	WriteJSON(w, http.StatusOK, "user cart feched successfully", cart)
+	WriteJSON(w, http.StatusOK, "user cart fetched successfully", cart)
 }
 
 func (s *Server) DeleteCart(w http.ResponseWriter, r *http.Request) {

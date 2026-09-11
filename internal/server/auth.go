@@ -19,8 +19,9 @@ import (
 )
 
 type AuthResponse struct {
-	Token string `json:"token"`
-	User  any    `json:"user"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+	User         any    `json:"user"`
 }
 
 func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +35,6 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 	if req.FullName == "" || req.Phone == "" ||
 		len(req.Password) < 8 || req.Email == "" ||
 		!req.Birth.Valid || len(req.Address) == 0 {
-		slog.Error("checking", "request", req)
 		WriteJSON(w, http.StatusBadRequest, "invalid form of data", nil)
 		return
 	}
@@ -82,12 +82,15 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 		slog.Error("failed to generate token", "error", err)
 	}
 
-	res := AuthResponse{
-		Token: token,
-		User:  user,
+	refreshToken := s.RefreshTokenUtil(w, ctx, user.ID)
+	if refreshToken == nil {
+		return
 	}
-
-	s.RefreshTokenUtil(w, ctx, user.ID)
+	res := AuthResponse{
+		Token:        token,
+		RefreshToken: *refreshToken,
+		User:         user,
+	}
 
 	WriteJSON(w, http.StatusCreated, "user created successfully", res)
 }
@@ -104,7 +107,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Email == "" || req.Password == "" {
-		WriteJSON(w, http.StatusBadRequest, "email and password are requirerd", nil)
+		WriteJSON(w, http.StatusBadRequest, "email and password are required", nil)
 		return
 	}
 
@@ -121,7 +124,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 
 	ok := ValidatePassword(user.HashPassword, req.Password)
 	if !ok {
-		WriteJSON(w, http.StatusUnauthorized, "invalid emali or passord", nil)
+		WriteJSON(w, http.StatusUnauthorized, "invalid emial or password", nil)
 		return
 	}
 
@@ -130,24 +133,29 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 		slog.Error("GenerateJWT inside Login func", "error", err)
 	}
 
-	res := AuthResponse{
-		Token: token,
-		User:  user,
+	refreshToken := s.RefreshTokenUtil(w, ctx, user.ID)
+	if refreshToken == nil {
+		WriteJSON(w, http.StatusInternalServerError, "failed to login", nil)
+		return
 	}
-	s.RefreshTokenUtil(w, ctx, user.ID)
+	res := AuthResponse{
+		Token:        token,
+		RefreshToken: *refreshToken,
+		User:         user,
+	}
 	WriteJSON(w, http.StatusOK, "user login successfully", res)
 }
 
-func (s *Server) RefreshTokenUtil(w http.ResponseWriter, ctx context.Context, userID string) {
-	cookie, err := GenerateRefreshCookie()
+func (s *Server) RefreshTokenUtil(w http.ResponseWriter, ctx context.Context, userID string) *string {
+	refreshToken, err := GenerateJWT(userID)
 	if err != nil {
 		slog.Error("failed to generate refresh token", "error", err)
-		return
+		return nil
 	}
 
-	hashToken := HashRefreshCookie(*cookie)
+	hashToken := HashRefreshToken(refreshToken)
 
-	exp := cookie.Expires
+	exp := time.Now().Add(7 * 24 * time.Hour)
 	var expTime pgtype.Date
 	if err := expTime.Scan(exp); err != nil {
 		slog.Error("failed to scan the date", "error", err)
@@ -155,27 +163,29 @@ func (s *Server) RefreshTokenUtil(w http.ResponseWriter, ctx context.Context, us
 	arg := db.InsertRefreshTokenParams{UserID: userID, HashToken: hashToken, ExpiaredAt: expTime}
 
 	err = s.db.InsertRefreshToken(ctx, arg)
-
 	if err != nil {
-		slog.Error("failed to insart refresh token in database", "error", err)
-	} else {
-		http.SetCookie(w, cookie)
+		slog.Error("failed to insert refresh token in database", "error", err)
+		return nil
 	}
+
+	return &refreshToken
 }
 
 func (s *Server) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	cookie, err := r.Cookie("refresh-token")
-	if err != nil {
-		if errors.Is(err, http.ErrNoCookie) {
-			http.Error(w, "Refresh Token not found", http.StatusUnauthorized)
-			return
-		}
-		http.Error(w, "Bad request", http.StatusBadRequest)
+	var req struct {
+		RefershToken string `json:"refresh_token"`
+	}
+	if ok := ReadJSON(w, r, &req); !ok {
 		return
 	}
 
-	hashToken := HashRefreshCookie(*cookie)
+	if req.RefershToken == "" {
+		WriteJSON(w, http.StatusBadRequest, "missing refresh toke", nil)
+		return
+	}
+
+	hashToken := HashRefreshToken(req.RefershToken)
 	data, err := s.db.GetRefreshToken(ctx, hashToken)
 	if err != nil {
 
@@ -204,9 +214,14 @@ func (s *Server) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	token, err := GenerateJWT(data.UserID)
 	if err != nil {
 		slog.Error("failed to generate token", "error", err)
+		WriteJSON(w, http.StatusInternalServerError, "failed to generated token", nil)
+		return
 	}
 
-	s.RefreshTokenUtil(w, ctx, data.UserID)
+	refreshToken := s.RefreshTokenUtil(w, ctx, data.UserID)
+	if refreshToken == nil {
+		return
+	}
 	arg := db.DeleteRefreshTokenParams{ID: data.ID, UserID: data.UserID}
 	row, err := s.db.DeleteRefreshToken(ctx, arg)
 	if err != nil {
@@ -217,5 +232,10 @@ func (s *Server) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteJSON(w, http.StatusOK, "token generated successfully", token)
+	res := AuthResponse{
+		Token:        token,
+		RefreshToken: *refreshToken,
+	}
+
+	WriteJSON(w, http.StatusOK, "token generated successfully", res)
 }
