@@ -1,4 +1,4 @@
-package server
+package middleware
 
 import (
 	"context"
@@ -6,33 +6,35 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/deanandreas/ecommerce-api/internal/auth"
+	"github.com/deanandreas/ecommerce-api/internal/httpx"
 )
 
-type contextKey string
+type Handler struct{}
 
-const (
-	userIDKey   contextKey = "userID"
-	userRoleKey contextKey = "role"
-)
+func NewHandler() *Handler {
+	return &Handler{}
+}
 
-func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
+func (h *Handler) Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			WriteJSON(w, http.StatusUnauthorized, "missing authorization header", nil)
+			httpx.Write(w, http.StatusUnauthorized, "missing authorization header", nil)
 			return
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			WriteJSON(w, http.StatusUnauthorized, "Invalid token format structure", nil)
+			httpx.Write(w, http.StatusUnauthorized, "Invalid token format structure", nil)
 			return
 		}
 		tokenString := parts[1]
 
-		userID, err := ValidateToken(tokenString)
+		userID, err := auth.ValidateToken(tokenString)
 		if err != nil {
-			WriteJSON(w, http.StatusUnauthorized, "Invalid or expired token", nil)
+			httpx.Write(w, http.StatusUnauthorized, "Invalid or expired token", nil)
 			return
 		}
 
@@ -48,13 +50,12 @@ type responseWriterWrapper struct {
 	statusCode int
 }
 
-// Override WriteHeader to capture the status code
 func (rw *responseWriterWrapper) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-func (s *Server) LoggerMiddleware(next http.Handler) http.Handler {
+func (h *Handler) Logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
 
@@ -69,7 +70,7 @@ func (s *Server) LoggerMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (s *Server) CORSMiddleware(nex http.Handler) http.Handler {
+func (h *Handler) CORS(nex http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")

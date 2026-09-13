@@ -8,13 +8,14 @@ import (
 	"time"
 
 	db "github.com/deanandreas/ecommerce-api/internal/database/sqlc"
+	"github.com/deanandreas/ecommerce-api/internal/middleware"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func (s *Server) CreateOrder(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		WriteJSON(w, http.StatusUnauthorized, "unauthorized", nil)
 		return
@@ -70,7 +71,7 @@ func (s *Server) CreateOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetAllUserOrders(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		WriteJSON(w, http.StatusUnauthorized, "unauthorized", nil)
 		return
@@ -90,7 +91,7 @@ func (s *Server) GetAllUserOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetUserOrder(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		WriteJSON(w, http.StatusUnauthorized, "unauthorized", nil)
 		return

@@ -10,6 +10,7 @@ import (
 
 	"github.com/deanandreas/ecommerce-api/internal/database"
 	db "github.com/deanandreas/ecommerce-api/internal/database/sqlc"
+	"github.com/deanandreas/ecommerce-api/internal/middleware"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -21,7 +22,7 @@ type paymentItem struct {
 // InitiatePayment creates a pending payment for an order that has not been
 // paid yet, and returns the payment details the client needs to pay.
 func (s *Server) InitiatePayment(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		WriteJSON(w, http.StatusUnauthorized, "unauthorized", nil)
 		return
@@ -97,7 +98,7 @@ func (s *Server) InitiatePayment(w http.ResponseWriter, r *http.Request) {
 // ConfirmPayment finalizes a previously initiated payment as paid and marks
 // the order as confirmed.
 func (s *Server) ConfirmPayment(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		WriteJSON(w, http.StatusUnauthorized, "unauthorized", nil)
 		return
@@ -143,7 +144,7 @@ func (s *Server) ConfirmPayment(w http.ResponseWriter, r *http.Request) {
 // CancelPayment cancels an in-progress payment, cancels the order and returns
 // the reserved stock.
 func (s *Server) CancelPayment(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		WriteJSON(w, http.StatusUnauthorized, "unauthorized", nil)
 		return
@@ -192,7 +193,7 @@ func (s *Server) CancelPayment(w http.ResponseWriter, r *http.Request) {
 
 // GetPaymentByID returns a single payment owned by the authenticated user.
 func (s *Server) GetPaymentByID(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		WriteJSON(w, http.StatusUnauthorized, "unauthorized", nil)
 		return

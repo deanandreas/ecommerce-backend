@@ -8,87 +8,87 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux := http.NewServeMux()
 
 	// -->> System <<-
-	mux.HandleFunc("/api/v1/", s.homeHandler)
-	mux.HandleFunc("GET /api/v1/health", s.healthHandler)
+	mux.HandleFunc("/api/v1/", s.System.Greating)
+	mux.HandleFunc("GET /api/v1/health", s.System.GetHealth)
 
 	// -->> Auth <<--
-	mux.HandleFunc("POST /api/v1/register", s.Register)
-	mux.HandleFunc("GET /api/v1/token/refresh", s.RefreshToken)
-	mux.HandleFunc("POST /api/v1/login", s.Login)
+	mux.HandleFunc("POST /api/v1/register", s.Auth.Register)
+	mux.HandleFunc("GET /api/v1/token/refresh", s.Auth.Refresh)
+	mux.HandleFunc("POST /api/v1/login", s.Auth.Login)
 
 	// -->> Home <<--
-	mux.HandleFunc("GET /api/v1/home", s.Home)
-	mux.HandleFunc("GET /api/v1/product/star", s.GetPopularProducts)
-	mux.HandleFunc("GET /api/v1/product/details/{id}", s.GetProduct)
-	mux.Handle("GET /api/v1/products/image/", http.StripPrefix("/api/v1/products/image/", serveImage))
+	mux.HandleFunc("GET /api/v1/home", s.Home.Home)
+	mux.HandleFunc("GET /api/v1/product/star", s.Home.Popular)
+	mux.HandleFunc("GET /api/v1/product/details/{id}", s.Product.GetProduct)
+	mux.Handle("GET /api/v1/products/image/", http.StripPrefix("/api/v1/products/image/", s.Home.ServeImage()))
 
 	// -->>  User <<--
 	mux.Handle("GET /api/v1/user/profiles",
-		s.AuthMiddleware(http.HandlerFunc(s.GetUserProfile)))
+		s.Middleware.Auth(http.HandlerFunc(s.User.GetUserProfile)))
 	mux.Handle("PATCH /api/v1/user/profiles",
-		s.AuthMiddleware(http.HandlerFunc(s.UpdateUserProfile)))
+		s.Middleware.Auth(http.HandlerFunc(s.User.UpdateUserProfile)))
 	mux.Handle("POST /api/v1/user/address",
-		s.AuthMiddleware(http.HandlerFunc(s.AddUserAdress)))
+		s.Middleware.Auth(http.HandlerFunc(s.User.AddUserAddress)))
 	mux.Handle("PATCH /api/v1/user/address/{id}",
-		s.AuthMiddleware(http.HandlerFunc(s.UpdateDefaultAddress)))
+		s.Middleware.Auth(http.HandlerFunc(s.User.UpdateDefaultAddress)))
 	mux.Handle("DELETE /api/v1/user/address/{id}",
-		s.AuthMiddleware(http.HandlerFunc(s.DeleteUserAddres)))
+		s.Middleware.Auth(http.HandlerFunc(s.User.DeleteAddress)))
 
 	// -->>  Product <<--
 	mux.Handle("GET /api/v1/user/products",
-		s.AuthMiddleware(http.HandlerFunc(s.GetUserProducts)))
+		s.Middleware.Auth(http.HandlerFunc(s.Product.GetUserProducts)))
 	mux.Handle("GET /api/v1/user/product/{id}",
-		s.AuthMiddleware(http.HandlerFunc(s.GetUserProduct)))
+		s.Middleware.Auth(http.HandlerFunc(s.Product.GetUserProduct)))
 	mux.Handle("POST /api/v1/user/product/images/{id}",
-		s.AuthMiddleware(http.HandlerFunc(s.AddProductImages)))
+		s.Middleware.Auth(http.HandlerFunc(s.Product.AddProductImages)))
 	mux.Handle("POST /api/v1/user/products",
-		s.AuthMiddleware(http.HandlerFunc(s.CreateProduct)))
+		s.Middleware.Auth(http.HandlerFunc(s.Product.Create)))
 	mux.Handle("PATCH /api/v1/user/products/{id}",
-		s.AuthMiddleware(http.HandlerFunc(s.UpdateProduct)))
+		s.Middleware.Auth(http.HandlerFunc(s.Product.Update)))
 	mux.Handle("PATCH /api/v1/user/product/images",
-		s.AuthMiddleware(http.HandlerFunc(s.UpdateDefaultImage)))
+		s.Middleware.Auth(http.HandlerFunc(s.Product.UpdateDefaultImage)))
 	mux.Handle("DELETE /api/v1/user/product/images",
-		s.AuthMiddleware(http.HandlerFunc(s.DeleteProductImage)))
+		s.Middleware.Auth(http.HandlerFunc(s.Product.DeleteProductImage)))
 	mux.Handle("DELETE /api/v1/user/products/{id}",
-		s.AuthMiddleware(http.HandlerFunc(s.DeleteProduct)))
+		s.Middleware.Auth(http.HandlerFunc(s.Product.Delete)))
 
 	// -->> Cart <<--
 	mux.Handle("POST /api/v1/user/carts",
-		s.AuthMiddleware(http.HandlerFunc(s.CreateCart)))
+		s.Middleware.Auth(http.HandlerFunc(s.CreateCart)))
 	mux.Handle("GET /api/v1/user/cart/items",
-		s.AuthMiddleware(http.HandlerFunc(s.GetUserCarts)))
+		s.Middleware.Auth(http.HandlerFunc(s.GetUserCarts)))
 	mux.Handle("PATCH /api/v1/user/cart/items",
-		s.AuthMiddleware(http.HandlerFunc(s.UpdateCartQuantity)))
+		s.Middleware.Auth(http.HandlerFunc(s.UpdateCartQuantity)))
 	mux.Handle("DELETE /api/v1/user/cart/items/{id}",
-		s.AuthMiddleware(http.HandlerFunc(s.DeleteCart)))
+		s.Middleware.Auth(http.HandlerFunc(s.DeleteCart)))
 	mux.Handle("DELETE /api/v1/user/carts/{id}",
-		s.AuthMiddleware(http.HandlerFunc(s.DeleteCarts)))
+		s.Middleware.Auth(http.HandlerFunc(s.DeleteCarts)))
 
 	// -->> Order <<--
 	mux.Handle("POST /api/v1/user/orders",
-		s.AuthMiddleware(http.HandlerFunc(s.CreateOrder)))
+		s.Middleware.Auth(http.HandlerFunc(s.CreateOrder)))
 	mux.Handle("GET /api/v1/user/orders",
-		s.AuthMiddleware(http.HandlerFunc(s.GetAllUserOrders)))
+		s.Middleware.Auth(http.HandlerFunc(s.GetAllUserOrders)))
 	mux.Handle("GET /api/v1/user/orders/{id}",
-		s.AuthMiddleware(http.HandlerFunc(s.GetUserOrder)))
+		s.Middleware.Auth(http.HandlerFunc(s.GetUserOrder)))
 
 	// -->> Payment <<--
 	mux.Handle("POST /api/v1/user/orders/{id}/payment",
-		s.AuthMiddleware(http.HandlerFunc(s.InitiatePayment)))
+		s.Middleware.Auth(http.HandlerFunc(s.InitiatePayment)))
 	mux.Handle("POST /api/v1/user/payments/{id}/confirm",
-		s.AuthMiddleware(http.HandlerFunc(s.ConfirmPayment)))
+		s.Middleware.Auth(http.HandlerFunc(s.ConfirmPayment)))
 	mux.Handle("POST /api/v1/user/payments/{id}/cancel",
-		s.AuthMiddleware(http.HandlerFunc(s.CancelPayment)))
+		s.Middleware.Auth(http.HandlerFunc(s.CancelPayment)))
 	mux.Handle("GET /api/v1/user/payments/{id}",
-		s.AuthMiddleware(http.HandlerFunc(s.GetPaymentByID)))
+		s.Middleware.Auth(http.HandlerFunc(s.GetPaymentByID)))
 
 	// -->> Reviews <<--
 	mux.Handle("POST /api/v1/user/reviews",
-		s.AuthMiddleware(http.HandlerFunc(s.CreateReview)))
+		s.Middleware.Auth(http.HandlerFunc(s.CreateReview)))
 	mux.Handle("GET /api/v1/user/review/{id}",
-		s.AuthMiddleware(http.HandlerFunc(s.GetUserReview)))
+		s.Middleware.Auth(http.HandlerFunc(s.GetUserReview)))
 	mux.Handle("GET /api/v1/product/review/{id}",
 		http.HandlerFunc(s.GetProductReviews))
 
-	return s.LoggerMiddleware(s.CORSMiddleware(mux))
+	return s.Middleware.Logger(s.Middleware.CORS(mux))
 }

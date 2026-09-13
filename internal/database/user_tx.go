@@ -121,7 +121,7 @@ func (p *pSQL) UpdateCartItemTx(ctx context.Context, arg db.UpdateCartItemQuanti
 	return &cartItem, nil
 }
 
-func (p *pSQL) UpdateDefaultAddress(ctx context.Context, arg db.UpdateDefaultAddressParams) (*db.GetUserByIDRow, error) {
+func (p *pSQL) UpdateDefaultAddressTx(ctx context.Context, arg db.UpdateDefaultAddressParams) (*db.GetUserByIDRow, error) {
 	tx, err := p.Begin(ctx)
 	if err != nil {
 		return nil, err

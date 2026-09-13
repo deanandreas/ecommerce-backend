@@ -5,10 +5,11 @@ import (
 	"net/http"
 
 	db "github.com/deanandreas/ecommerce-api/internal/database/sqlc"
+	"github.com/deanandreas/ecommerce-api/internal/middleware"
 )
 
 func (s *Server) CreateReview(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		WriteJSON(w, http.StatusUnauthorized, "unauthorized", nil)
 		return
@@ -37,7 +38,7 @@ func (s *Server) CreateReview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetUserReview(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		WriteJSON(w, http.StatusUnauthorized, "unauthorized", nil)
 		return

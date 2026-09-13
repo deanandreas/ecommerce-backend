@@ -3,8 +3,6 @@ package database
 import (
 	"context"
 	"errors"
-	"log/slog"
-	"net/http"
 	"regexp"
 	"strings"
 
@@ -13,22 +11,13 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-var Ext = []string{".png", ".jpg"}
-
-func (p *pSQL) InsertProductTx(ctx context.Context, r *http.Request, arg ProductData) (*db.GetProductByUserIDRow, error) {
+func (p *pSQL) InsertProductTx(ctx context.Context, arg ProductData, imageURLs []string) (*db.GetProductByUserIDRow, error) {
 	tx, err := p.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var imageURLs []string
-
-	defer RollBackWithFile(tx, ctx, imageURLs)
-
-	imageURLs, err = SaveUploadImages(r, "products/image", "image")
-	if err != nil {
-		return nil, err
-	}
+	defer RollBack(tx, ctx)
 
 	q := p.WithTx(tx)
 
@@ -178,19 +167,13 @@ func (p *pSQL) UpdateDefaultImageTx(ctx context.Context, arg db.GetProductByUser
 	return &product, nil
 }
 
-func (p *pSQL) InsertProductImagesTx(ctx context.Context, r *http.Request, arg db.GetProductByUserIDParams) (*db.GetProductByUserIDRow, error) {
+func (p *pSQL) InsertProductImagesTx(ctx context.Context, arg db.GetProductByUserIDParams, imageURLs []string) (*db.GetProductByUserIDRow, error) {
 	tx, err := p.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var imageURLs []string
 
-	defer RollBackWithFile(tx, ctx, imageURLs)
-
-	imageURLs, err = SaveUploadImages(r, "products/image", "image")
-	if err != nil {
-		return nil, err
-	}
+	defer RollBack(tx, ctx)
 
 	q := p.WithTx(tx)
 
@@ -214,10 +197,10 @@ func (p *pSQL) InsertProductImagesTx(ctx context.Context, r *http.Request, arg d
 	return &product, nil
 }
 
-func (p *pSQL) DeleteProductImageTx(ctx context.Context, arg db.GetProductImagesParams, userID string) error {
+func (p *pSQL) DeleteProductImageTx(ctx context.Context, arg db.GetProductImagesParams, userID string) (string, error) {
 	tx, err := p.Begin(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	defer RollBack(tx, ctx)
@@ -226,26 +209,22 @@ func (p *pSQL) DeleteProductImageTx(ctx context.Context, arg db.GetProductImages
 
 	row, err := q.GetProductImages(ctx, arg)
 	if err != nil {
-		return err
+		return "", err
 	} else if row.IsDefault {
-		return ErrNotDeleted
-	}
-
-	if err := DeleteUploads(row.ImageUrl); err != nil {
-		slog.Error("failed to delete the file", "error", err)
+		return "", ErrNotDeleted
 	}
 
 	iArg := db.DeleteProductImageParams{ID: arg.ID, UserID: userID}
 	err = q.DeleteProductImage(ctx, iArg)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return row.ImageUrl, nil
 }
 
 func (p *pSQL) InsertReviewTx(ctx context.Context, arg db.InsertReviewParams) (*db.GetReviewByIDRow, error) {

@@ -1,11 +1,8 @@
 package server
 
-import (
-	"encoding/json"
-	"errors"
-)
+import "github.com/deanandreas/ecommerce-api/internal/httpx"
 
 var (
-	ErrTypeUnmarshal *json.UnmarshalTypeError
-	ErrMissingKey    = errors.New("key does not exist")
+	ErrTypeUnmarshal = httpx.ErrTypeUnmarshal
+	ErrMissingKey    = httpx.ErrMissingKey
 )

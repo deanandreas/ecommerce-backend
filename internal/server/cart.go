@@ -7,12 +7,13 @@ import (
 
 	"github.com/deanandreas/ecommerce-api/internal/database"
 	db "github.com/deanandreas/ecommerce-api/internal/database/sqlc"
+	"github.com/deanandreas/ecommerce-api/internal/middleware"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func (s *Server) CreateCart(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		WriteJSON(w, http.StatusBadRequest, "missing user id", nil)
 		return
@@ -55,7 +56,7 @@ func (s *Server) CreateCart(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) UpdateCartQuantity(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		WriteJSON(w, http.StatusUnauthorized, "unauthorized", nil)
 		return
@@ -103,7 +104,7 @@ func (s *Server) UpdateCartQuantity(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetUserCarts(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		WriteJSON(w, http.StatusUnauthorized, "unauthorized", nil)
 		return
@@ -129,7 +130,7 @@ func (s *Server) GetUserCarts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) DeleteCart(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		WriteJSON(w, http.StatusUnauthorized, "Unauthorized", nil)
 		return
@@ -164,7 +165,7 @@ func (s *Server) DeleteCart(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) DeleteCarts(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		WriteJSON(w, http.StatusUnauthorized, "unauthorized", nil)
 		return
