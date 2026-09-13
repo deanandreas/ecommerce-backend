@@ -22,28 +22,28 @@ func NewHandler(service *Service) *Handler {
 func (h *Handler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserID(r)
 	if err != nil {
-		httpx.Write(w, http.StatusUnauthorized, "Unauthorized", nil)
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	user, err := h.service.UserProfile(r.Context(), userID)
 	if err != nil {
 		if errors.Is(err, ErrNoRows) {
-			httpx.Write(w, http.StatusNotFound, "not found", nil)
+			httpx.Error(w, http.StatusNotFound, "PROFILE_NOT_FOUND", "not found")
 			return
 		}
 		slog.Error("filed to get user profile", "error", err)
-		httpx.Write(w, http.StatusInternalServerError, "failed to fetch user profile", nil)
+		httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to fetch user profile")
 		return
 	}
 
-	httpx.Write(w, http.StatusOK, "profile fetched successfully", user)
+	httpx.Send(w, http.StatusOK, user)
 }
 
 func (h *Handler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserID(r)
 	if err != nil {
-		httpx.Write(w, http.StatusUnauthorized, "Unauthorized", nil)
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
@@ -59,23 +59,23 @@ func (h *Handler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrNoFiled):
-			httpx.Write(w, http.StatusBadRequest, "no field provided to update", nil)
+			httpx.Error(w, http.StatusBadRequest, "NO_FIELDS_TO_UPDATE", "no field provided to update")
 		case errors.Is(err, ErrInvalidPassword):
-			httpx.Write(w, http.StatusBadRequest, "invalid password", nil)
+			httpx.Error(w, http.StatusBadRequest, "INVALID_PASSWORD", "invalid password")
 		default:
 			slog.Error("failed to update user profile", "error", err)
-			httpx.Write(w, http.StatusInternalServerError, "failed to update user profile", nil)
+			httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to update user profile")
 		}
 		return
 	}
 
-	httpx.Write(w, http.StatusOK, "profile updated successfully", user)
+	httpx.Send(w, http.StatusOK, user)
 }
 
 func (h *Handler) AddUserAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserID(r)
 	if err != nil {
-		httpx.Write(w, http.StatusUnauthorized, "Unauthorized", nil)
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
@@ -89,21 +89,21 @@ func (h *Handler) AddUserAddress(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrInvalidData):
-			httpx.Write(w, http.StatusBadRequest, "invaled address", nil)
+			httpx.Error(w, http.StatusBadRequest, "INVALID_ADDRESS", "invaled address")
 		default:
 			slog.Error("failed to add address", "error", err)
-			httpx.Write(w, http.StatusInternalServerError, "failed to add address", nil)
+			httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to add address")
 		}
 		return
 	}
 
-	httpx.Write(w, http.StatusCreated, "address added successfully", user)
+	httpx.Send(w, http.StatusCreated, user)
 }
 
 func (h *Handler) UpdateDefaultAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserID(r)
 	if err != nil {
-		httpx.Write(w, http.StatusUnauthorized, "Unauthorized", nil)
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
@@ -113,23 +113,23 @@ func (h *Handler) UpdateDefaultAddress(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrInvalidData):
-			httpx.Write(w, http.StatusBadRequest, "missing address id", nil)
+			httpx.Error(w, http.StatusBadRequest, "ADDRESS_ID_REQUIRED", "missing address id")
 		case errors.Is(err, ErrInvalidID):
-			httpx.Write(w, http.StatusBadRequest, "invalid id", nil)
+			httpx.Error(w, http.StatusBadRequest, "INVALID_ID", "invalid id")
 		default:
 			slog.Error("failed to updated default address", "error", err)
-			httpx.Write(w, http.StatusInternalServerError, "failed to change the default address", nil)
+			httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to change the default address")
 		}
 		return
 	}
 
-	httpx.Write(w, http.StatusOK, "default address updated successfully", user)
+	httpx.Send(w, http.StatusOK, user)
 }
 
 func (h *Handler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserID(r)
 	if err != nil {
-		httpx.Write(w, http.StatusUnauthorized, "Unauthorized", nil)
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
@@ -139,15 +139,15 @@ func (h *Handler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrNoRows):
-			httpx.Write(w, http.StatusNotFound, "not found", nil)
+			httpx.Error(w, http.StatusNotFound, "ADDRESS_NOT_FOUND", "not found")
 		case errors.Is(err, ErrInvalidID):
-			httpx.Write(w, http.StatusBadRequest, "invalid id", nil)
+			httpx.Error(w, http.StatusBadRequest, "INVALID_ID", "invalid id")
 		default:
 			slog.Error("failed to delete user address", "error", err)
-			httpx.Write(w, http.StatusInternalServerError, "failed to delete the address", nil)
+			httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to delete the address")
 		}
 		return
 	}
 
-	httpx.Write(w, http.StatusNoContent, "", nil)
+	httpx.Send(w, http.StatusNoContent, nil)
 }

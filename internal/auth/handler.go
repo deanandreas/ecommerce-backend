@@ -27,17 +27,17 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrInvalidData):
-			httpx.Write(w, http.StatusBadRequest, "invalid form of data", nil)
+			httpx.Error(w, http.StatusBadRequest, "INVALID_FORM_DATA", "invalid form of data")
 		case errors.Is(err, ErrEmailExists):
-			httpx.Write(w, http.StatusConflict, "email already in use", nil)
+			httpx.Error(w, http.StatusConflict, "EMAIL_IN_USE", "email already in use")
 		default:
 			slog.Error("failed to register the user", "error", err)
-			httpx.Write(w, http.StatusInternalServerError, "failed to register the user", nil)
+			httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to register the user")
 		}
 		return
 	}
 
-	httpx.Write(w, http.StatusCreated, "user created successfully", res)
+	httpx.Send(w, http.StatusCreated, res)
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -53,17 +53,17 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrInvalidData):
-			httpx.Write(w, http.StatusBadRequest, "email and password are required", nil)
+			httpx.Error(w, http.StatusBadRequest, "AUTH_FIELDS_REQUIRED", "email and password are required")
 		case errors.Is(err, ErrInvalidCredentials):
-			httpx.Write(w, http.StatusUnauthorized, "invalid email or password", nil)
+			httpx.Error(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", "invalid email or password")
 		default:
 			slog.Error("failed to login", "error", err)
-			httpx.Write(w, http.StatusInternalServerError, "failed to login", nil)
+			httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to login")
 		}
 		return
 	}
 
-	httpx.Write(w, http.StatusOK, "user login successfully", res)
+	httpx.Send(w, http.StatusOK, res)
 }
 
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
@@ -78,17 +78,17 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrInvalidData):
-			httpx.Write(w, http.StatusBadRequest, "missing refresh token", nil)
+			httpx.Error(w, http.StatusBadRequest, "MISSING_REFRESH_TOKEN", "missing refresh token")
 		case errors.Is(err, ErrRefreshTokenNotFound):
-			httpx.Write(w, http.StatusUnauthorized, "refresh token does not exist", nil)
+			httpx.Error(w, http.StatusUnauthorized, "INVALID_REFRESH_TOKEN", "refresh token does not exist")
 		case errors.Is(err, ErrRefreshTokenExpired):
-			httpx.Write(w, http.StatusLocked, "expiared cookie", nil)
+			httpx.Error(w, http.StatusLocked, "REFRESH_TOKEN_EXPIRED", "expiared cookie")
 		default:
 			slog.Error("failed to refresh token", "error", err)
-			httpx.Write(w, http.StatusInternalServerError, "failed to generated token", nil)
+			httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to generated token")
 		}
 		return
 	}
 
-	httpx.Write(w, http.StatusOK, "token generated successfully", res)
+	httpx.Send(w, http.StatusOK, res)
 }

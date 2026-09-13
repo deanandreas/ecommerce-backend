@@ -21,7 +21,7 @@ func NewHandler(service *Service) *Handler {
 func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserID(r)
 	if err != nil {
-		httpx.Write(w, http.StatusUnauthorized, "unauthorized", nil)
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthorized")
 		return
 	}
 
@@ -34,52 +34,52 @@ func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
 	review, err := h.service.CreateReview(r.Context(), req)
 	if err != nil {
 		if errors.Is(err, ErrInvalidInput) {
-			httpx.Write(w, http.StatusBadRequest, "product id and rating are required", nil)
+			httpx.Error(w, http.StatusBadRequest, "INVALID_REVIEW_INPUT", "product id and rating are required")
 			return
 		}
 		slog.Error("failed to insert review", "error", err)
-		httpx.Write(w, http.StatusInternalServerError, "failed to save the review", nil)
+		httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to save the review")
 		return
 	}
 
-	httpx.Write(w, http.StatusCreated, "product reviewd successfully", review)
+	httpx.Send(w, http.StatusCreated, review)
 }
 
 func (h *Handler) GetUserReview(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserID(r)
 	if err != nil {
-		httpx.Write(w, http.StatusUnauthorized, "unauthorized", nil)
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthorized")
 		return
 	}
 	id := r.PathValue("id")
 	if id == "" {
-		httpx.Write(w, http.StatusBadRequest, "product id is reqeured", nil)
+		httpx.Error(w, http.StatusBadRequest, "PRODUCT_ID_REQUIRED", "product id is reqeured")
 		return
 	}
 
 	review, err := h.service.GetUserReview(r.Context(), db.GetUserReviewParams{UserID: userID, ProductID: id})
 	if err != nil {
 		slog.Error("failed to get user review", "error", err)
-		httpx.Write(w, http.StatusInternalServerError, "failed to get user Review", nil)
+		httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to get user Review")
 		return
 	}
 
-	httpx.Write(w, http.StatusOK, "review fetched successfully", review)
+	httpx.Send(w, http.StatusOK, review)
 }
 
 func (h *Handler) GetProductReviews(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if id == "" {
-		httpx.Write(w, http.StatusBadRequest, "product id is reqeured", nil)
+		httpx.Error(w, http.StatusBadRequest, "PRODUCT_ID_REQUIRED", "product id is reqeured")
 		return
 	}
 
 	reviews, err := h.service.GetProductReviews(r.Context(), id)
 	if err != nil {
 		slog.Error("failed to get user review", "error", err)
-		httpx.Write(w, http.StatusInternalServerError, "failed to get user Review", nil)
+		httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to get user Review")
 		return
 	}
 
-	httpx.Write(w, http.StatusOK, "review fetched successfully", reviews)
+	httpx.Send(w, http.StatusOK, reviews)
 }

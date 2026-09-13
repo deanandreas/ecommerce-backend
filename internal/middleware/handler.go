@@ -21,20 +21,20 @@ func (h *Handler) Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			httpx.Write(w, http.StatusUnauthorized, "missing authorization header", nil)
+			httpx.Error(w, http.StatusUnauthorized, "MISSING_AUTH_HEADER", "missing authorization header")
 			return
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			httpx.Write(w, http.StatusUnauthorized, "Invalid token format structure", nil)
+			httpx.Error(w, http.StatusUnauthorized, "INVALID_TOKEN_FORMAT", "Invalid token format structure")
 			return
 		}
 		tokenString := parts[1]
 
 		userID, err := auth.ValidateToken(tokenString)
 		if err != nil {
-			httpx.Write(w, http.StatusUnauthorized, "Invalid or expired token", nil)
+			httpx.Error(w, http.StatusUnauthorized, "INVALID_OR_EXPIRED_TOKEN", "Invalid or expired token")
 			return
 		}
 

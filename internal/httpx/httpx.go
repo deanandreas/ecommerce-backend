@@ -13,23 +13,43 @@ var (
 	ErrTypeUnmarshal *json.UnmarshalTypeError
 )
 
-type Response struct {
-	Data    any    `json:"data"`
+type ErrorDetail struct {
+	Code    string `json:"code"`
 	Message string `json:"message"`
-	Success bool   `json:"success"`
+	Status  int    `json:"status"`
 }
 
-func Write(w http.ResponseWriter, statusCode int, message string, data any) {
-	isOK := statusCode >= 200 && statusCode < 300
+type ErrorResponse struct {
+	Error ErrorDetail `json:"error"`
+}
 
-	resp := Response{
-		Data:    data,
-		Message: message,
-		Success: isOK,
+// Send writes data directly as the JSON response body with no envelope.
+// A 204 status writes an empty body.
+func Send(w http.ResponseWriter, status int, data any) {
+	if status == http.StatusNoContent {
+		w.WriteHeader(status)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		slog.Error("response error", "error", err.Error())
+	}
+}
+
+// Error writes a structured error envelope with a stable machine-readable code.
+func Error(w http.ResponseWriter, status int, code, message string) {
+	resp := ErrorResponse{
+		Error: ErrorDetail{
+			Code:    code,
+			Message: message,
+			Status:  status,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		slog.Error("response error", "error", err.Error())
 	}
@@ -43,20 +63,20 @@ func Read(w http.ResponseWriter, r *http.Request, dst any) bool {
 
 	if err := dec.Decode(&dst); err != nil {
 		if errors.As(err, &ErrTypeUnmarshal) {
-			Write(w, http.StatusBadRequest, "invalid value of json key", nil)
+			Error(w, http.StatusBadRequest, "INVALID_JSON_VALUE", "invalid value of json key")
 			return false
 		}
 		if errors.Is(err, io.EOF) {
-			Write(w, http.StatusBadRequest, "body must contain json payload", nil)
+			Error(w, http.StatusBadRequest, "BODY_REQUIRED", "body must contain json payload")
 			return false
 		}
 		slog.Error("failed to read json payload", "error", err)
-		Write(w, http.StatusUnprocessableEntity, "invalid json payload", nil)
+		Error(w, http.StatusUnprocessableEntity, "INVALID_JSON", "invalid json payload")
 		return false
 	}
 
 	if err := dec.Decode(&struct{}{}); err != io.EOF {
-		Write(w, http.StatusBadRequest, "too many json payload", nil)
+		Error(w, http.StatusBadRequest, "TOO_MANY_JSON", "too many json payload")
 		return false
 	}
 

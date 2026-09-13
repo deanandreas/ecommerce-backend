@@ -16,14 +16,14 @@ func NewHandler(service *Service) *Handler {
 
 func (h *Handler) Greating(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/api/v1/" && r.Method != http.MethodGet {
-		httpx.Write(w, http.StatusNotFound, "not found", nil)
+		httpx.Error(w, http.StatusNotFound, "NOT_FOUND", "not found")
 		return
 	}
 
-	httpx.Write(w, http.StatusOK, "data fetched successfully", map[string]string{"greerting": "Hello World!"})
+	httpx.Send(w, http.StatusOK, map[string]string{"greerting": "Hello World!"})
 }
 
 func (h *Handler) GetHealth(w http.ResponseWriter, r *http.Request) {
 	stats := h.service.Health(r.Context())
-	httpx.Write(w, http.StatusOK, "system health fetched successfully", stats)
+	httpx.Send(w, http.StatusOK, stats)
 }

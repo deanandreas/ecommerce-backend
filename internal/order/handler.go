@@ -24,7 +24,7 @@ func NewHandler(service *Service) *Handler {
 func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserID(r)
 	if err != nil {
-		httpx.Write(w, http.StatusUnauthorized, "unauthorized", nil)
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthorized")
 		return
 	}
 
@@ -34,7 +34,7 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !req.ShipDate.Valid {
-		httpx.Write(w, http.StatusBadRequest, "ship date are required", nil)
+		httpx.Error(w, http.StatusBadRequest, "SHIP_DATE_REQUIRED", "ship date are required")
 		return
 	}
 	req.UserID = userID
@@ -43,32 +43,32 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	cart, err := h.service.CreateOrder(ctx, req)
 	if err != nil {
 		if errors.Is(err, ErrInvalidShipDate) {
-			httpx.Write(w, http.StatusBadRequest, "invalid date", nil)
+			httpx.Error(w, http.StatusBadRequest, "INVALID_SHIP_DATE", "invalid date")
 			return
 		}
 		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok {
 			switch pgErr.Code {
 			case pgerrcode.NoData:
-				httpx.Write(w, http.StatusBadRequest, "user does not have cart", nil)
+				httpx.Error(w, http.StatusBadRequest, "CART_NOT_FOUND", "user does not have cart")
 				return
 			}
 		}
 		if errors.Is(err, pgx.ErrNoRows) {
-			httpx.Write(w, http.StatusBadRequest, "user does not have cart", nil)
+			httpx.Error(w, http.StatusBadRequest, "CART_NOT_FOUND", "user does not have cart")
 			return
 		}
 		slog.Error("failed to create user order", "error", err)
-		httpx.Write(w, http.StatusInternalServerError, "failed to create an order", nil)
+		httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to create an order")
 		return
 	}
 
-	httpx.Write(w, http.StatusCreated, "order created successfully", cart)
+	httpx.Send(w, http.StatusCreated, cart)
 }
 
 func (h *Handler) GetAllUserOrders(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserID(r)
 	if err != nil {
-		httpx.Write(w, http.StatusUnauthorized, "unauthorized", nil)
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthorized")
 		return
 	}
 
@@ -76,25 +76,25 @@ func (h *Handler) GetAllUserOrders(w http.ResponseWriter, r *http.Request) {
 	orders, err := h.service.GetAllUserOrders(ctx, userID)
 	if err != nil {
 		slog.Error("failed to get user orders", "error", err)
-		httpx.Write(w, http.StatusInternalServerError, "failed to fetch user orders", nil)
+		httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to fetch user orders")
 		return
 	}
 	if orders == nil {
 		orders = []db.GetAllUserOrdersRow{}
 	}
 
-	httpx.Write(w, http.StatusOK, "user order fetched successfully", orders)
+	httpx.Send(w, http.StatusOK, orders)
 }
 
 func (h *Handler) GetUserOrder(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserID(r)
 	if err != nil {
-		httpx.Write(w, http.StatusUnauthorized, "unauthorized", nil)
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthorized")
 		return
 	}
 	id := r.PathValue("id")
 	if id == "" {
-		httpx.Write(w, http.StatusBadRequest, "order id required", nil)
+		httpx.Error(w, http.StatusBadRequest, "ORDER_ID_REQUIRED", "order id required")
 		return
 	}
 
@@ -102,9 +102,9 @@ func (h *Handler) GetUserOrder(w http.ResponseWriter, r *http.Request) {
 	order, err := h.service.GetUserOrder(ctx, db.GetUserOrderParams{UserID: userID, ID: id})
 	if err != nil {
 		slog.Error("failed to get user order", "error", err)
-		httpx.Write(w, http.StatusInternalServerError, "failed to fetch order", nil)
+		httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to fetch order")
 		return
 	}
 
-	httpx.Write(w, http.StatusOK, "order fetched successfully", order)
+	httpx.Send(w, http.StatusOK, order)
 }

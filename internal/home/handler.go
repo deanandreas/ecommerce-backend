@@ -66,25 +66,25 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok {
 			switch pgErr.Code {
 			case pgerrcode.NoData:
-				httpx.Write(w, http.StatusNotFound, "data not found", nil)
+				httpx.Error(w, http.StatusNotFound, "NOT_FOUND", "data not found")
 				return
 			}
 		}
 		slog.Error("failed to get home data", "error", err)
-		httpx.Write(w, http.StatusInternalServerError, "failed to fetch home data", nil)
+		httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to fetch home data")
 		return
 	}
 
-	httpx.Write(w, http.StatusOK, "home data fetched successfully", res)
+	httpx.Send(w, http.StatusOK, res)
 }
 
 func (h *Handler) Popular(w http.ResponseWriter, r *http.Request) {
 	res, err := h.service.Popular(r.Context())
 	if err != nil {
 		slog.Error("failed to get popular products", "error", err)
-		httpx.Write(w, http.StatusInternalServerError, "failed to fetch popular products", nil)
+		httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to fetch popular products")
 		return
 	}
 
-	httpx.Write(w, http.StatusOK, "popular products fetched successfully", res)
+	httpx.Send(w, http.StatusOK, res)
 }
