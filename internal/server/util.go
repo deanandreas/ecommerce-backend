@@ -2,11 +2,9 @@ package server
 
 import (
 	"errors"
-	"net/http"
 	"os"
 	"strconv"
 
-	"github.com/deanandreas/ecommerce-api/internal/httpx"
 	"github.com/deanandreas/ecommerce-api/internal/storage"
 	_ "github.com/joho/godotenv/autoload"
 )
@@ -35,16 +33,4 @@ func GetMinIOConfig() storage.Config {
 		Bucket:    os.Getenv("MINIO_BUCKET"),
 		UseSSL:    os.Getenv("MINIO_USE_SSL") == "true",
 	}
-}
-
-func WriteJSON(w http.ResponseWriter, statusCode int, message string, data any) {
-	httpx.Write(w, statusCode, message, data)
-}
-
-func ReadJSON(w http.ResponseWriter, r *http.Request, dst any) bool {
-	return httpx.Read(w, r, dst)
-}
-
-func FromDataToJSON(r *http.Request, key string, dst any) error {
-	return httpx.FromData(r, key, dst)
 }

@@ -31,7 +31,7 @@ type Handlers struct {
 	Store      *storage.MinIOStore
 }
 
-func Handler(dbURL string) (DBService, *Handlers, error) {
+func Handler(dbURL string) (Closer, *Handlers, error) {
 	ctx := context.Background()
 	pool, err := database.GetDB(ctx, dbURL)
 	if err != nil {
