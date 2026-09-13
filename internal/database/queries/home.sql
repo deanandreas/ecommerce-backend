@@ -64,5 +64,8 @@ FROM
             "product_id" = p."id"
             AND "is_default" = TRUE
         LIMIT 1) i ON TRUE
-WHERE
-    "rating" > 3.5;
+GROUP BY
+    p."id",
+    i."image_url"
+HAVING
+    AVG("rating") > 3.5;
