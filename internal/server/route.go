@@ -86,11 +86,11 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// -->> Reviews <<--
 	mux.Handle("POST /api/v1/user/reviews",
-		s.Middleware.Auth(http.HandlerFunc(s.CreateReview)))
+		s.Middleware.Auth(http.HandlerFunc(s.Review.CreateReview)))
 	mux.Handle("GET /api/v1/user/review/{id}",
-		s.Middleware.Auth(http.HandlerFunc(s.GetUserReview)))
+		s.Middleware.Auth(http.HandlerFunc(s.Review.GetUserReview)))
 	mux.Handle("GET /api/v1/product/review/{id}",
-		http.HandlerFunc(s.GetProductReviews))
+		http.HandlerFunc(s.Review.GetProductReviews))
 
 	return s.Middleware.Logger(s.Middleware.CORS(mux))
 }
