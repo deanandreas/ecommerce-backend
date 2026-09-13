@@ -1,6 +1,6 @@
 # E-Commerce API
 
-REST API backend for an e-commerce platform — built with Go and PostgreSQL.
+REST API backend for an e-commerce platform — built with Go, PostgreSQL, and MinIO.
 
 ## Tech Stack
 
@@ -10,6 +10,7 @@ REST API backend for an e-commerce platform — built with Go and PostgreSQL.
 - **Auth:** JWT access & refresh tokens ([golang-jwt](https://github.com/golang-jwt/jwt))
 - **Password hashing:** bcrypt ([golang.org/x/crypto](https://pkg.go.dev/golang.org/x/crypto/bcrypt))
 - **Image processing:** [imaging](https://github.com/disintegration/imaging) (Lanczos resampling, 300px)
+- **Object storage:** [MinIO](https://min.io) via [minio-go](https://github.com/minio/minio-go) — product images
 - **Dev server:** [air](https://github.com/air-verse/air) for live reload (via [mise](https://mise.jdx.dev))
 
 ## Project Structure
@@ -20,22 +21,23 @@ internal/
   server/
     server.go                   # Server setup & graceful shutdown
     route.go                    # All HTTP routes & middleware wiring
-    middleware.go                # JWT auth, CORS, request logging
-    auth.go                     # Register, login, refresh token handlers
-    auth_token.go               # JWT creation & validation helpers
-    home.go                     # Home page, products, categories
-    product.go                  # CRUD for user products
-    cart.go                     # Cart operations
-    order.go                    # Order placement & lookup
-    payment.go                  # Payment initiation, confirm, cancel
-    review.go                   # Product review CRUD
-    user.go                     # User profile & address management
-    errors.go                   # Shared error types
-    util.go                     # JSON helpers, env loading
+    handlers.go                 # Handlers factory wiring feature packages together
+    util.go                     # Env loading, MinIO config
+  auth/                         # Register, login, refresh token (service + handlers)
+  user/                         # Profile & address management
+  product/                      # Product CRUD + image handling
+  home/                         # Home feed, products, categories, popular products
+  cart/                         # Cart operations
+  order/                        # Order placement & lookup
+  payment/                      # Payment initiation, confirm, cancel
+  review/                       # Product reviews
+  system/                       # Health check, greeting
+  middleware/                   # JWT auth, CORS, request logging
+  storage/                      # MinIO image store + HTTP proxy handler
+  httpx/                        # JSON read/send helpers & error envelope
   database/
     database.go                 # Connection pool & health check
     errors.go                   # Postgres error handling
-    util.go                     # File uploads & image resizing
     *_tx.go                     # Transaction logic (users, products, payments, etc.)
     migrations/                 # 14 SQL migrations (up & down)
     queries/                    # sqlc input: SQL queries by domain
@@ -48,16 +50,30 @@ internal/
 
 - Go 1.26+
 - PostgreSQL
+- MinIO (or the included `docker-compose.yml`, which starts both Postgres 16 and MinIO)
 - [mise](https://mise.jdx.dev) (for air dev server) — optional
+
+### Start services
+
+```bash
+docker compose up -d   # Postgres (5432) + MinIO (9000, console http://localhost:9001)
+```
+
+MinIO is available at `localhost:9000` with access key `minioadmin` and secret `minioadmin`. The server creates the product bucket automatically on startup.
 
 ### Environment Variables
 
 Create a `.env` file in the project root:
 
 ```env
-PORT=8080
-DBURL=postgresql://user:password@localhost:5432/dbname?sslmode=disable
+PORT=8888
+DB_URL=postgresql://user:password@localhost:5432/dbname?sslmode=disable
 JWT_KEY=your-256-bit-secret-here
+MINIO_ENDPOINT=localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET=products
+MINIO_USE_SSL=false
 ```
 
 ### Run
@@ -76,15 +92,31 @@ Migrations are in `internal/database/migrations/`. Apply them using your preferr
 
 ## API Endpoints
 
-All routes are prefixed with `/api/v1/`. Responses follow a standard shape:
+All routes are prefixed with `/api/v1/`.
+
+### Response Format
+
+**Success** responses return the payload directly — no envelope:
+
+```json
+{ "id": "...", "full_name": "Dean", ... }
+```
+
+Operations that carry no payload (deletes, payment confirm/cancel) return `204 No Content` with an empty body.
+
+**Errors** use a structured envelope with a stable, machine-readable `code`:
 
 ```json
 {
-  "data": {},
-  "message": "human-readable message",
-  "success": true
+  "error": {
+    "code": "PRODUCT_NOT_FOUND",
+    "message": "product does not exist",
+    "status": 404
+  }
 }
 ```
+
+All internal failures use the generic code `INTERNAL`. Common codes include `UNAUTHORIZED`, `INVALID_CREDENTIALS`, `EMAIL_IN_USE`, `PRODUCT_NOT_FOUND`, `INVALID_PRODUCT_ID`, `ORDER_NOT_PENDING`, `PAYMENT_NOT_PENDING`, `INVALID_JSON`, `NOT_FOUND`.
 
 ### Auth (public)
 
@@ -96,13 +128,13 @@ All routes are prefixed with `/api/v1/`. Responses follow a standard shape:
 
 ### Home (public)
 
-| Method | Endpoint                         | Description                    |
-| ------ | -------------------------------- | ------------------------------ |
-| GET    | `/products`                      | List products (paginated)      |
-| GET    | `/product/categories`            | List product categories        |
-| GET    | `/product/star`                  | Popular / top-rated products   |
-| GET    | `/product/details/{id}`          | Single product detail view     |
-| GET    | `/product/review/{id}`           | Reviews for a product          |
+| Method | Endpoint                         | Description                          |
+| ------ | -------------------------------- | ------------------------------------ |
+| GET    | `/home`                          | Home feed (products + categories)    |
+| GET    | `/product/star`                  | Popular / top-rated products         |
+| GET    | `/product/details/{id}`          | Single product detail view           |
+| GET    | `/product/review/{id}`           | Reviews for a product                |
+| GET    | `/products/image/{file}`         | Product image served from MinIO      |
 
 ### User Profile (authenticated)
 
