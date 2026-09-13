@@ -56,15 +56,15 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// -->> Cart <<--
 	mux.Handle("POST /api/v1/user/carts",
-		s.Middleware.Auth(http.HandlerFunc(s.CreateCart)))
+		s.Middleware.Auth(http.HandlerFunc(s.Cart.CreateCart)))
 	mux.Handle("GET /api/v1/user/cart/items",
-		s.Middleware.Auth(http.HandlerFunc(s.GetUserCarts)))
+		s.Middleware.Auth(http.HandlerFunc(s.Cart.GetUserCarts)))
 	mux.Handle("PATCH /api/v1/user/cart/items",
-		s.Middleware.Auth(http.HandlerFunc(s.UpdateCartQuantity)))
+		s.Middleware.Auth(http.HandlerFunc(s.Cart.UpdateCartQuantity)))
 	mux.Handle("DELETE /api/v1/user/cart/items/{id}",
-		s.Middleware.Auth(http.HandlerFunc(s.DeleteCart)))
+		s.Middleware.Auth(http.HandlerFunc(s.Cart.DeleteCart)))
 	mux.Handle("DELETE /api/v1/user/carts/{id}",
-		s.Middleware.Auth(http.HandlerFunc(s.DeleteCarts)))
+		s.Middleware.Auth(http.HandlerFunc(s.Cart.DeleteCarts)))
 
 	// -->> Order <<--
 	mux.Handle("POST /api/v1/user/orders",
