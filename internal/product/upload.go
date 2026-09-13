@@ -1,16 +1,18 @@
 package product
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/deanandreas/ecommerce-api/internal/storage"
 	"github.com/disintegration/imaging"
 )
 
@@ -26,7 +28,7 @@ const (
 	imageKey    = "image"
 )
 
-func saveImages(r *http.Request) ([]string, error) {
+func saveImages(ctx context.Context, store storage.ImageStore, r *http.Request) ([]string, error) {
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		return nil, err
 	}
@@ -44,10 +46,10 @@ func saveImages(r *http.Request) ([]string, error) {
 			return nil, err
 		}
 
-		fileExt := strings.ToLower(filepath.Ext(header.Filename))
+		fileExt := strings.TrimPrefix(strings.ToLower(filepath.Ext(header.Filename)), ".")
 		isValid := false
 		for _, ext := range Ext {
-			if fileExt == ext {
+			if strings.TrimPrefix(ext, ".") == fileExt {
 				isValid = true
 			}
 		}
@@ -66,33 +68,27 @@ func saveImages(r *http.Request) ([]string, error) {
 
 		var format imaging.Format
 		switch fileExt {
-		case ".png":
+		case "png":
 			format = imaging.PNG
-		case ".gif":
+		case "gif":
 			format = imaging.GIF
 		default:
 			format = imaging.JPEG
 		}
 
+		var buf bytes.Buffer
+		if err := imaging.Encode(&buf, dstImage, format); err != nil {
+			return nil, err
+		}
+
 		fileName := fmt.Sprintf("%d-%s", time.Now().UnixNano(), s)
-		uploadDir := filepath.Join("uploads", imageFolder)
-		if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		key := imageFolder + "/" + fileName
+
+		if err := store.Put(ctx, key, buf.Bytes()); err != nil {
 			return nil, err
 		}
 
-		path := filepath.Join(uploadDir, fileName)
-		dst, err := os.Create(path)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := imaging.Encode(dst, dstImage, format); err != nil {
-			return nil, err
-		}
-		dst.Close()
-
-		fileURL, _ := strings.CutPrefix(path, "uploads")
-		fileURLs = append(fileURLs, fileURL)
+		fileURLs = append(fileURLs, "/"+key)
 		if err := file.Close(); err != nil {
 			slog.Error("failed to close file", "error", err.Error())
 		}
@@ -101,18 +97,15 @@ func saveImages(r *http.Request) ([]string, error) {
 	return fileURLs, nil
 }
 
-func deleteUpload(path string) error {
-	path = filepath.Join("uploads", path)
-	if err := os.Remove(path); err != nil {
-		return err
+func removeFile(ctx context.Context, store storage.ImageStore, path string) {
+	key := strings.TrimPrefix(path, "/")
+	if err := store.Remove(ctx, key); err != nil {
+		slog.Error("failed to remove image", "error", err)
 	}
-	return nil
 }
 
-func deleteFiles(paths []string) {
+func deleteFiles(ctx context.Context, store storage.ImageStore, paths []string) {
 	for _, path := range paths {
-		if err := deleteUpload(path); err != nil {
-			slog.Error("failed to delete file", "error", err)
-		}
+		removeFile(ctx, store, path)
 	}
 }

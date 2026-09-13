@@ -2,6 +2,8 @@ package server
 
 import (
 	"net/http"
+
+	"github.com/deanandreas/ecommerce-api/internal/storage"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
@@ -20,7 +22,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("GET /api/v1/home", s.Home.Home)
 	mux.HandleFunc("GET /api/v1/product/star", s.Home.Popular)
 	mux.HandleFunc("GET /api/v1/product/details/{id}", s.Product.GetProduct)
-	mux.Handle("GET /api/v1/products/image/", http.StripPrefix("/api/v1/products/image/", s.Home.ServeImage()))
+	mux.Handle("GET /api/v1/products/image/", http.StripPrefix("/api/v1/products/image/", storage.ImageHandler(s.Store)))
 
 	// -->>  User <<--
 	mux.Handle("GET /api/v1/user/profiles",

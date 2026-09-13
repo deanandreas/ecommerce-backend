@@ -8,6 +8,7 @@ import (
 	"github.com/deanandreas/ecommerce-api/internal/auth"
 	"github.com/deanandreas/ecommerce-api/internal/database"
 	db "github.com/deanandreas/ecommerce-api/internal/database/sqlc"
+	"github.com/deanandreas/ecommerce-api/internal/storage"
 )
 
 var ErrNoFiled = errors.New("no field provided")
@@ -25,11 +26,12 @@ type Repository interface {
 }
 
 type Service struct {
-	repo Repository
+	repo  Repository
+	store storage.ImageStore
 }
 
-func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+func NewService(repo Repository, store storage.ImageStore) *Service {
+	return &Service{repo: repo, store: store}
 }
 
 func (s *Service) GetUserProducts(ctx context.Context, userID string) ([]db.GetProductsByUserIDRow, error) {
@@ -49,14 +51,14 @@ func (s *Service) CreateProduct(ctx context.Context, r *http.Request, arg databa
 		return nil, auth.ErrInvalidData
 	}
 
-	imageURLs, err := saveImages(r)
+	imageURLs, err := saveImages(ctx, s.store, r)
 	if err != nil {
 		return nil, err
 	}
 
 	product, err := s.repo.InsertProductTx(ctx, arg, imageURLs)
 	if err != nil {
-		deleteFiles(imageURLs)
+		deleteFiles(ctx, s.store, imageURLs)
 		return nil, err
 	}
 
@@ -72,14 +74,14 @@ func (s *Service) UpdateProduct(ctx context.Context, arg database.UpdateProductD
 }
 
 func (s *Service) AddProductImages(ctx context.Context, r *http.Request, arg db.GetProductByUserIDParams) (*db.GetProductByUserIDRow, error) {
-	imageURLs, err := saveImages(r)
+	imageURLs, err := saveImages(ctx, s.store, r)
 	if err != nil {
 		return nil, err
 	}
 
 	product, err := s.repo.InsertProductImagesTx(ctx, arg, imageURLs)
 	if err != nil {
-		deleteFiles(imageURLs)
+		deleteFiles(ctx, s.store, imageURLs)
 		return nil, err
 	}
 
@@ -100,6 +102,6 @@ func (s *Service) DeleteProductImage(ctx context.Context, arg db.GetProductImage
 		return err
 	}
 
-	deleteFiles([]string{imageURL})
+	deleteFiles(ctx, s.store, []string{imageURL})
 	return nil
 }
