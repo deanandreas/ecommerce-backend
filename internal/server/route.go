@@ -76,13 +76,13 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// -->> Payment <<--
 	mux.Handle("POST /api/v1/user/orders/{id}/payment",
-		s.Middleware.Auth(http.HandlerFunc(s.InitiatePayment)))
+		s.Middleware.Auth(http.HandlerFunc(s.Payment.InitiatePayment)))
 	mux.Handle("POST /api/v1/user/payments/{id}/confirm",
-		s.Middleware.Auth(http.HandlerFunc(s.ConfirmPayment)))
+		s.Middleware.Auth(http.HandlerFunc(s.Payment.ConfirmPayment)))
 	mux.Handle("POST /api/v1/user/payments/{id}/cancel",
-		s.Middleware.Auth(http.HandlerFunc(s.CancelPayment)))
+		s.Middleware.Auth(http.HandlerFunc(s.Payment.CancelPayment)))
 	mux.Handle("GET /api/v1/user/payments/{id}",
-		s.Middleware.Auth(http.HandlerFunc(s.GetPaymentByID)))
+		s.Middleware.Auth(http.HandlerFunc(s.Payment.GetPaymentByID)))
 
 	// -->> Reviews <<--
 	mux.Handle("POST /api/v1/user/reviews",
