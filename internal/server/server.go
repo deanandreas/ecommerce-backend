@@ -21,7 +21,7 @@ type DBService interface {
 	GetProductReviews(ctx context.Context, productID string) ([]db.GetProductReviewsRow, error)
 	// >> Create Logics
 	InsertCartTx(ctx context.Context, arg database.CreateCart) (*db.CartItem, error)
-	InserOrderTx(ctx context.Context, arg db.InsertOrderParams) (*db.GetUserOrderRow, error)
+	InsertOrderTx(ctx context.Context, arg db.InsertOrderParams) (*db.GetUserOrderRow, error)
 	InsertPayment(ctx context.Context, arg db.InsertPaymentParams) (db.Payment, error)
 	InsertReviewTx(ctx context.Context, arg db.InsertReviewParams) (*db.GetReviewByIDRow, error)
 	// >> Update Logics

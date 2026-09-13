@@ -68,11 +68,11 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// -->> Order <<--
 	mux.Handle("POST /api/v1/user/orders",
-		s.Middleware.Auth(http.HandlerFunc(s.CreateOrder)))
+		s.Middleware.Auth(http.HandlerFunc(s.Order.CreateOrder)))
 	mux.Handle("GET /api/v1/user/orders",
-		s.Middleware.Auth(http.HandlerFunc(s.GetAllUserOrders)))
+		s.Middleware.Auth(http.HandlerFunc(s.Order.GetAllUserOrders)))
 	mux.Handle("GET /api/v1/user/orders/{id}",
-		s.Middleware.Auth(http.HandlerFunc(s.GetUserOrder)))
+		s.Middleware.Auth(http.HandlerFunc(s.Order.GetUserOrder)))
 
 	// -->> Payment <<--
 	mux.Handle("POST /api/v1/user/orders/{id}/payment",

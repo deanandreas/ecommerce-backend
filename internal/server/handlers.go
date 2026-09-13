@@ -8,6 +8,7 @@ import (
 	"github.com/deanandreas/ecommerce-api/internal/database"
 	"github.com/deanandreas/ecommerce-api/internal/home"
 	"github.com/deanandreas/ecommerce-api/internal/middleware"
+	"github.com/deanandreas/ecommerce-api/internal/order"
 	"github.com/deanandreas/ecommerce-api/internal/product"
 	"github.com/deanandreas/ecommerce-api/internal/storage"
 	"github.com/deanandreas/ecommerce-api/internal/system"
@@ -21,6 +22,7 @@ type Handlers struct {
 	User       *user.Handler
 	Product    *product.Handler
 	Cart       *cart.Handler
+	Order      *order.Handler
 	Middleware *middleware.Handler
 	Store      *storage.MinIOStore
 }
@@ -44,6 +46,7 @@ func Handler(dbURL string) (DBService, *Handlers, error) {
 		User:       user.NewHandler(user.NewService(pool)),
 		Product:    product.NewHandler(product.NewService(pool, store)),
 		Cart:       cart.NewHandler(cart.NewService(pool)),
+		Order:      order.NewHandler(order.NewService(pool)),
 		Middleware: middleware.NewHandler(),
 		Store:      store,
 	}

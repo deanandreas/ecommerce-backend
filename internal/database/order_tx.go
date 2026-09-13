@@ -7,7 +7,7 @@ import (
 	db "github.com/deanandreas/ecommerce-api/internal/database/sqlc"
 )
 
-func (p *pSQL) InserOrderTx(ctx context.Context, arg db.InsertOrderParams) (*db.GetUserOrderRow, error) {
+func (p *pSQL) InsertOrderTx(ctx context.Context, arg db.InsertOrderParams) (*db.GetUserOrderRow, error) {
 	tx, err := p.Begin(ctx)
 	if err != nil {
 		return nil, err
