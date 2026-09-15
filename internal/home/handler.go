@@ -37,14 +37,10 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 
 	var minPrice, maxPrice pgtype.Numeric
 	if v := queryVals.Get("min_price"); v != "" {
-		if val, err := strconv.Atoi(v); err == nil {
-			minPrice.Scan(val)
-		}
+		_ = minPrice.Scan(v)
 	}
 	if v := queryVals.Get("max_price"); v != "" {
-		if val, err := strconv.Atoi(v); err == nil {
-			maxPrice.Scan(val)
-		}
+		_ = maxPrice.Scan(v)
 	}
 
 	var categoryLimit int32

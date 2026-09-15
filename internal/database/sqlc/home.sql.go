@@ -93,14 +93,16 @@ FROM
             "product_id" = p."id"
             AND "is_default" = TRUE
         LIMIT 1) i ON TRUE
-WHERE ($1::text IS NULL
-    OR p.title ILIKE '%' || $1::text || '%')
-AND ($2::text IS NULL
-    OR c.slug = $2)
-AND ($3::numeric IS NULL
-    OR p.price_in_cent >= $3)
-AND ($4::numeric IS NULL
-    OR p.price_in_cent <= $4)
+WHERE
+    "deleted_at" IS NULL
+    AND ($1::text IS NULL
+        OR p.title ILIKE '%' || $1::text || '%')
+    AND ($2::text IS NULL
+        OR c.slug = $2)
+    AND ($3::numeric IS NULL
+        OR p.price_in_cent >= $3)
+    AND ($4::numeric IS NULL
+        OR p.price_in_cent <= $4)
 ORDER BY
     CASE WHEN $5::text = 'price_asc' THEN
         p.price_in_cent

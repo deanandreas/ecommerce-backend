@@ -17,14 +17,16 @@ FROM
             "product_id" = p."id"
             AND "is_default" = TRUE
         LIMIT 1) i ON TRUE
-WHERE (sqlc.narg ('search')::text IS NULL
-    OR p.title ILIKE '%' || sqlc.narg ('search')::text || '%')
-AND (sqlc.narg ('slug')::text IS NULL
-    OR c.slug = sqlc.narg ('slug'))
-AND (sqlc.narg ('min_price')::numeric IS NULL
-    OR p.price_in_cent >= sqlc.narg ('min_price'))
-AND (sqlc.narg ('max_price')::numeric IS NULL
-    OR p.price_in_cent <= sqlc.narg ('max_price'))
+WHERE
+    "deleted_at" IS NULL
+    AND (sqlc.narg ('search')::text IS NULL
+        OR p.title ILIKE '%' || sqlc.narg ('search')::text || '%')
+    AND (sqlc.narg ('slug')::text IS NULL
+        OR c.slug = sqlc.narg ('slug'))
+    AND (sqlc.narg ('min_price')::numeric IS NULL
+        OR p.price_in_cent >= sqlc.narg ('min_price'))
+    AND (sqlc.narg ('max_price')::numeric IS NULL
+        OR p.price_in_cent <= sqlc.narg ('max_price'))
 ORDER BY
     CASE WHEN sqlc.narg ('sort_by')::text = 'price_asc' THEN
         p.price_in_cent
