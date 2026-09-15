@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	db "github.com/deanandreas/ecommerce-api/internal/database/sqlc"
 	"github.com/deanandreas/ecommerce-api/internal/httpx"
@@ -78,6 +79,24 @@ func (h *Handler) GetProductReviews(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("failed to get user review", "error", err)
 		httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to get user Review")
+		return
+	}
+
+	httpx.Send(w, http.StatusOK, reviews)
+}
+
+func (h *Handler) LatestReviews(w http.ResponseWriter, r *http.Request) {
+	var limit int32 = 5
+	if v := r.URL.Query().Get("l"); v != "" {
+		if val, err := strconv.Atoi(v); err == nil && val > 0 {
+			limit = int32(val)
+		}
+	}
+
+	reviews, err := h.service.GetLatestReviews(r.Context(), limit)
+	if err != nil {
+		slog.Error("failed to get latest reviews", "error", err)
+		httpx.Error(w, http.StatusInternalServerError, "INTERNAL", "failed to get latest reviews")
 		return
 	}
 

@@ -15,7 +15,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// -->> Auth <<--
 	mux.HandleFunc("POST /api/v1/register", s.Auth.Register)
-	mux.HandleFunc("GET /api/v1/token/refresh", s.Auth.Refresh)
+	mux.HandleFunc("POST /api/v1/token/refresh", s.Auth.Refresh)
 	mux.HandleFunc("POST /api/v1/login", s.Auth.Login)
 
 	// -->> Home <<--
@@ -91,6 +91,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 		s.Middleware.Auth(http.HandlerFunc(s.Review.GetUserReview)))
 	mux.Handle("GET /api/v1/product/review/{id}",
 		http.HandlerFunc(s.Review.GetProductReviews))
+	mux.HandleFunc("GET /api/v1/reviews/latest",
+		s.Review.LatestReviews)
 
 	return s.Middleware.Logger(s.Middleware.CORS(mux))
 }

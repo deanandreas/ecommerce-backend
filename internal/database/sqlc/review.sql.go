@@ -7,7 +7,75 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const getLatestReviews = `-- name: GetLatestReviews :many
+SELECT
+    r."id",
+    r."rating",
+    r."comment",
+    r."created_at",
+    r."product_id",
+    p."title" AS "product_title",
+    i."image_url"
+FROM
+    "reviews" r
+    JOIN "products" p ON p."id" = r."product_id"
+    LEFT JOIN LATERAL (
+        SELECT
+            "image_url"
+        FROM
+            "product_images"
+        WHERE
+            "product_id" = p."id"
+            AND "is_default" = TRUE
+        LIMIT 1) i ON TRUE
+WHERE
+    r."comment" IS NOT NULL
+ORDER BY
+    r."created_at" DESC
+LIMIT $1
+`
+
+type GetLatestReviewsRow struct {
+	ID           string           `json:"id"`
+	Rating       int32            `json:"rating"`
+	Comment      *string          `json:"comment"`
+	CreatedAt    pgtype.Timestamp `json:"created_at"`
+	ProductID    string           `json:"product_id"`
+	ProductTitle string           `json:"product_title"`
+	ImageUrl     string           `json:"image_url"`
+}
+
+func (q *Queries) GetLatestReviews(ctx context.Context, limit int32) ([]GetLatestReviewsRow, error) {
+	rows, err := q.db.Query(ctx, getLatestReviews, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLatestReviewsRow
+	for rows.Next() {
+		var i GetLatestReviewsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Rating,
+			&i.Comment,
+			&i.CreatedAt,
+			&i.ProductID,
+			&i.ProductTitle,
+			&i.ImageUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
 
 const getProductReviews = `-- name: GetProductReviews :many
 SELECT
@@ -132,4 +200,42 @@ func (q *Queries) InsertReview(ctx context.Context, arg InsertReviewParams) (str
 	var id string
 	err := row.Scan(&id)
 	return id, err
+}
+
+const updateReview = `-- name: UpdateReview :one
+UPDATE "reviews"
+SET
+    "rating" = $1,
+    "comment" = $2,
+    "updated_at" = NOW()
+WHERE
+    "user_id" = $3
+    AND "product_id" = $4
+RETURNING
+    "id", "rating", "comment"
+`
+
+type UpdateReviewParams struct {
+	Rating    int32   `json:"rating"`
+	Comment   *string `json:"comment"`
+	UserID    string  `json:"user_id"`
+	ProductID string  `json:"product_id"`
+}
+
+type UpdateReviewRow struct {
+	ID      string  `json:"id"`
+	Rating  int32   `json:"rating"`
+	Comment *string `json:"comment"`
+}
+
+func (q *Queries) UpdateReview(ctx context.Context, arg UpdateReviewParams) (UpdateReviewRow, error) {
+	row := q.db.QueryRow(ctx, updateReview,
+		arg.Rating,
+		arg.Comment,
+		arg.UserID,
+		arg.ProductID,
+	)
+	var i UpdateReviewRow
+	err := row.Scan(&i.ID, &i.Rating, &i.Comment)
+	return i, err
 }
